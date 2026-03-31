@@ -387,17 +387,19 @@ function spinSlot() {
         const resultDiv = document.getElementById('slotResult');
         
         if (winAmount > 0) {
-            updateUserBalance(winAmount - bet);
-            resultDiv.className = 'result-message result-win';
-            resultDiv.innerHTML = `🎉 ПОБЕДА! ${results.join(' ')} | Выигрыш: ${winAmount} (x${multiplier}) 🎉`;
-            addToHistory('Слоты', bet, winAmount - bet, 'win');
-            showToast(`🍀 Вы выиграли ${winAmount} очков!`, '#0f0');
+            safeUpdateBalance(winAmount - bet).then(() => {
+                resultDiv.className = 'result-message result-win';
+                resultDiv.innerHTML = `🎉 ПОБЕДА! ${results.join(' ')} | Выигрыш: ${winAmount} (x${multiplier}) 🎉`;
+                addToHistory('Слоты', bet, winAmount - bet, 'win');
+                showToast(`🍀 Вы выиграли ${winAmount} очков!`, '#0f0');
+            });
         } else {
-            updateUserBalance(-bet);
-            resultDiv.className = 'result-message result-lose';
-            resultDiv.innerHTML = `😔 ПРОИГРЫШ! ${results.join(' ')} | Потеряно: ${bet} 😔`;
-            addToHistory('Слоты', bet, -bet, 'lose');
-            showToast(`😢 Вы проиграли ${bet} очков...`, '#ff2a6d');
+            safeUpdateBalance(-bet).then(() => {
+                resultDiv.className = 'result-message result-lose';
+                resultDiv.innerHTML = `😔 ПРОИГРЫШ! ${results.join(' ')} | Потеряно: ${bet} 😔`;
+                addToHistory('Слоты', bet, -bet, 'lose');
+                showToast(`😢 Вы проиграли ${bet} очков...`, '#ff2a6d');
+            });
         }
         setTimeout(() => { resultDiv.innerHTML = ''; resultDiv.className = 'result-message'; }, 3000);
     }
