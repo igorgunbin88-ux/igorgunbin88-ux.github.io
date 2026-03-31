@@ -195,13 +195,28 @@ async function updateUIForUser() {
 }
 
 function updateBalanceUI() {
+    // Обновляем баланс на странице казино
     const balanceSpan = document.getElementById('balanceAmount');
-    const userDisplay = document.getElementById('userDisplay');
     if (balanceSpan && currentUser) {
         balanceSpan.textContent = currentUser.casinoBalance || 5000;
     }
+    
+    // Обновляем отображение пользователя (в шапке)
+    const userDisplay = document.getElementById('userDisplay');
     if (userDisplay && currentUser) {
         userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
+    }
+    
+    // Обновляем статистику в админ-панели (если открыта)
+    const casinoTotalBalanceSpan = document.getElementById('casinoTotalBalance');
+    if (casinoTotalBalanceSpan) {
+        updateCasinoStats();
+    }
+    
+    // Обновляем селект пользователей в админ-панели
+    const adminUserSelect = document.getElementById('adminUserSelect');
+    if (adminUserSelect && adminUserSelect.value === currentUser?.username) {
+        updateCasinoUserSelect();
     }
 }
 
