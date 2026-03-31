@@ -6,176 +6,23 @@ let crashInterval = null;
 let crashActive = false;
 let currentMultiplier = 1.0;
 
-// ========== ФУНКЦИИ ДЛЯ АДМИН-ПАНЕЛИ КАЗИНО (ОБЛАЧНЫЕ) ==========
-
-// Обновление списка пользователей для селекта
-async function updateCasinoUserSelect() {
-    const select = document.getElementById('adminUserSelect');
-    if (!select) return;
-    
+// Функция проверки соединения с Supabase
+async function checkConnection() {
     try {
         const users = await getAllUsersCloud();
-        select.innerHTML = '<option value="">Выберите пользователя</option>';
-        for (const user of users) {
-            select.innerHTML += `<option value="${user.username}">${user.username} ${user.isAdmin ? '👑' : '👤'} | 💰 ${user.casinoBalance || 5000}</option>`;
-        }
+        return users !== null;
     } catch (e) {
-        console.error('Ошибка загрузки пользователей:', e);
-        select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        console.error('Нет соединения с сервером:', e);
+        showToast('⚠️ Нет соединения с сервером! Баланс может не обновляться', '#ff2a6d');
+        return false;
     }
 }
 
-// Обновление статистики казино
-async function updateCasinoStats() {
-    try {
-        const users = await getAllUsersCloud();
-        let totalBalance = 0;
-        let playerCount = users.length;
-        const topPlayers = [];
-        
-        for (const user of users) {
-            const balance = user.casinoBalance || 5000;
-            totalBalance += balance;
-            topPlayers.push({ username: user.username, balance, isAdmin: user.isAdmin });
-        }
-        
-        const avgBalance = playerCount > 0 ? Math.floor(totalBalance / playerCount) : 0;
-        
-        const totalPlayersSpan = document.getElementById('casinoTotalPlayers');
-        const totalBalanceSpan = document.getElementById('casinoTotalBalance');
-        const avgBalanceSpan = document.getElementById('casinoAvgBalance');
-        const topPlayersDiv = document.getElementById('casinoTopPlayers');
-        
-        if (totalPlayersSpan) totalPlayersSpan.textContent = playerCount;
-        if (totalBalanceSpan) totalBalanceSpan.textContent = totalBalance;
-        if (avgBalanceSpan) avgBalanceSpan.textContent = avgBalance;
-        
-        if (topPlayersDiv) {
-            const sorted = topPlayers.sort((a, b) => b.balance - a.balance).slice(0, 10);
-            topPlayersDiv.innerHTML = sorted.map((p, idx) => `
-                <div style="padding: 8px; border-bottom: 1px solid #05d9e830; display: flex; justify-content: space-between;">
-                    <span>${idx + 1}. ${p.username} ${p.isAdmin ? '👑' : ''}</span>
-                    <span style="color: #ffd700;">💰 ${p.balance}</span>
-                </div>
-            `).join('');
-        }
-    } catch (e) {
-        console.error('Ошибка обновления статистики:', e);
-    }
-}
-
-// Начисление очков казино (облачная версия)
-async function addCasinoBalanceToUser() {
-    const select = document.getElementById('adminUserSelect');
-    const amountInput = document.getElementById('adminBalanceAmount');
-    const username = select ? select.value : '';
-    const amount = amountInput ? parseInt(amountInput.value) : 0;
-    
-    if (!username) {
-        showToast('❌ Выберите пользователя!', '#ff2a6d');
-        return;
-    }
-    if (isNaN(amount) || amount <= 0) {
-        showToast('❌ Введите корректную сумму (больше 0)!', '#ff2a6d');
-        return;
-    }
-    
-    try {
-        const success = await addCasinoBalanceCloud(username, amount);
-        if (success) {
-            showToast(`💰 ${username} получил ${amount} очков казино!`, '#ffd700');
-            
-            if (currentUser && currentUser.username === username) {
-                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + amount;
-                updateBalanceUI();
-            }
-            
-            await updateCasinoUserSelect();
-            await updateCasinoStats();
-            await loadAdminUsersList();
-        } else {
-            showToast('❌ Ошибка начисления!', '#ff2a6d');
-        }
-    } catch (e) {
-        console.error('Ошибка:', e);
-        showToast('❌ Ошибка начисления!', '#ff2a6d');
-    }
-}
-
-// Быстрое начисление 100 очков
-window.quickAddBalanceCloud = async function(username) {
-    try {
-        const success = await addCasinoBalanceCloud(username, 100);
-        if (success) {
-            showToast(`💰 ${username} +100 очков!`, '#ffd700');
-            
-            if (currentUser && currentUser.username === username) {
-                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + 100;
-                updateBalanceUI();
-            }
-            
-            await loadAdminUsersList();
-            await updateCasinoUserSelect();
-            await updateCasinoStats();
-        } else {
-            showToast('❌ Ошибка начисления!', '#ff2a6d');
-        }
-    } catch (e) {
-        console.error('Ошибка:', e);
-        showToast('❌ Ошибка начисления!', '#ff2a6d');
-    }
-};
-
-// Обновление списка пользователей в админ-панели
-async function loadAdminUsersList() {
-    const container = document.getElementById('usersListContainer');
-    if (!container) return;
-    
-    try {
-        const users = await getAllUsersCloud();
-        container.innerHTML = '';
-        for (const user of users) {
-            const div = document.createElement('div');
-            div.style.cssText = 'padding: 10px; border-bottom: 1px solid #05d9e8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;';
-            div.innerHTML = `
-                <span><b>${user.username}</b> ${user.isAdmin ? '👑' : ''} | Игр: ${user.gamesPlayed || 0} | 🎰 Баланс: ${user.casinoBalance || 5000}</span>
-                <div style="display: flex; gap: 8px;">
-                    ${!user.isAdmin ? `<button class="tiny-btn" onclick="window.deleteUserCloud('${user.username}')">🗑 Удалить</button>` : ''}
-                    <button class="tiny-btn" onclick="window.quickAddBalanceCloud('${user.username}')">💰 +100</button>
-                </div>
-            `;
-            container.appendChild(div);
-        }
-    } catch (e) {
-        console.error('Ошибка загрузки пользователей:', e);
-        container.innerHTML = '<p style="color: #ff2a6d;">Ошибка загрузки пользователей</p>';
-    }
-}
-
-// Удаление пользователя
-window.deleteUserCloud = async function(username) {
-    if (confirm(`Удалить пользователя ${username}?`)) {
-        try {
-            await supabaseClient.request(`/users?username=eq.${encodeURIComponent(username)}`, { method: 'DELETE' });
-            showToast(`Пользователь ${username} удалён`, '#ff2a6d');
-            
-            if (currentUser && currentUser.username === username) {
-                logoutCloud();
-                currentUser = null;
-                updateUIForUser();
-                updateBalanceUI();
-            }
-            
-            await loadAdminUsersList();
-            await updateCasinoUserSelect();
-            await updateCasinoStats();
-        } catch (e) {
-            console.error('Ошибка удаления:', e);
-            showToast('Ошибка удаления', '#ff2a6d');
-        }
-    }
-};
-
+// Проверяем соединение при загрузке страницы
+window.addEventListener('load', async () => {
+    await checkConnection();
+    // ... остальной код
+});
 // ========== ФУНКЦИИ UI ДЛЯ КАЗИНО ==========
 async function updateUIForUser() {
     const loginBtn = document.getElementById('loginBtn');
