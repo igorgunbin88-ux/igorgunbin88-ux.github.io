@@ -1048,3 +1048,102 @@ footer {
         gap: 8px;
     }
 }
+/* Адаптация для телефонов */
+@media (max-width: 768px) {
+    /* Уменьшаем Тетрис */
+    .tetris-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    #tetrisCanvas {
+        width: 250px;
+        height: 500px;
+    }
+    
+    .tetris-info {
+        width: 100%;
+        max-width: 280px;
+        padding: 15px;
+    }
+    
+    .tetris-info div {
+        font-size: 0.9rem;
+        margin: 8px 0;
+    }
+    
+    .tetris-btn {
+        font-size: 0.8rem;
+        padding: 8px 12px;
+        min-width: 50px;
+    }
+    
+    /* Уменьшаем змейку */
+    #snakeCanvas {
+        width: 300px;
+        height: 300px;
+    }
+    
+    /* Уменьшаем Флэппи */
+    #flappyCanvas {
+        width: 300px;
+        height: 375px;
+    }
+    
+    /* Уменьшаем Динозаврика */
+    #dinoCanvas {
+        width: 100%;
+        height: auto;
+        max-height: 150px;
+    }
+    
+    /* Кнопки управления */
+    .control-btn {
+        font-size: 1.2rem;
+        padding: 10px 18px;
+        min-width: 55px;
+    }
+    
+    .control-row {
+        gap: 8px;
+    }
+    
+    .touch-controls {
+        margin: 15px auto;
+    }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 480px) {
+    #tetrisCanvas {
+        width: 200px;
+        height: 400px;
+    }
+    
+    #snakeCanvas {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .control-btn {
+        font-size: 1rem;
+        padding: 8px 14px;
+        min-width: 45px;
+    }
+    
+    .tetris-btn {
+        font-size: 0.7rem;
+        padding: 6px 10px;
+        min-width: 40px;
+    }
+    
+    .game-info {
+        gap: 20px;
+        font-size: 1rem;
+    }
+    
+    .bet-input {
+        width: 80px;
+        font-size: 0.9rem;
+    }
+}
