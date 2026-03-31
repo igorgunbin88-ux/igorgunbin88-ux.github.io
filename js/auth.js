@@ -86,10 +86,17 @@ async function registerUserCloud(username, password) {
         
         const passwordHash = await hashPassword(password);
         await supabaseClient.insert('users', {
-            username: username,
+             username: username,
             password_hash: passwordHash,
             is_admin: false,
-            registered: new Date().toISOString()
+            registered: new Date().toISOString(),
+            games_played: 0,
+            snake_score: 0,
+            tetris_score: 0,
+            dino_score: 0,
+            flappy_score: 0,
+            memory_score: 0,
+            casino_balance: 250
         });
         
         return { success: true };
