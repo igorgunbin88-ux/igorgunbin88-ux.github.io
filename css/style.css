@@ -972,3 +972,79 @@ footer {
         .spinning {
             animation: spin 0.3s ease-out;
         }
+/* Сенсорное управление для телефонов */
+.touch-controls {
+    display: none;
+    margin: 20px auto;
+    gap: 10px;
+    justify-content: center;
+}
+
+.control-btn {
+    background: linear-gradient(135deg, #ff2a6d, #8a2be2);
+    border: none;
+    color: white;
+    font-size: 2rem;
+    padding: 15px 25px;
+    margin: 5px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 0 10px #ff2a6d;
+    min-width: 70px;
+}
+
+.control-btn:active {
+    transform: scale(0.95);
+    background: linear-gradient(135deg, #ff6a9d, #b84be2);
+}
+
+.control-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.tetris-btn {
+    font-size: 1.2rem;
+    padding: 12px 18px;
+    min-width: 60px;
+}
+
+/* Показываем кнопки только на телефонах */
+@media (max-width: 768px) {
+    .touch-controls {
+        display: block;
+    }
+    
+    .control-btn {
+        font-size: 1.5rem;
+        padding: 12px 20px;
+        min-width: 60px;
+    }
+    
+    .tetris-btn {
+        font-size: 1rem;
+        padding: 10px 15px;
+        min-width: 55px;
+    }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 480px) {
+    .control-btn {
+        font-size: 1.2rem;
+        padding: 10px 15px;
+        min-width: 50px;
+    }
+    
+    .tetris-btn {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+        min-width: 45px;
+    }
+    
+    .control-row {
+        gap: 8px;
+    }
+}
