@@ -228,15 +228,15 @@ async function updateUserBalance(changeAmount) {
     
     try {
         // Обновляем в облаке
-        await supabaseClient.update('users', { casino_balance: newBalance }, currentUser.username);
+        const result = await supabaseClient.update('users', { casino_balance: newBalance }, currentUser.username);
         
-        // Обновляем локальные данные
+        // Обновляем локальные данные (даже если ответ пустой)
         currentUser.casinoBalance = newBalance;
         
         // МГНОВЕННО ОБНОВЛЯЕМ UI
         updateBalanceUI();
         
-        // Также обновляем отображение в userDisplay на главной странице (если есть)
+        // Также обновляем отображение в userDisplay на главной странице
         const userDisplay = document.getElementById('userDisplay');
         if (userDisplay && currentUser) {
             userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance}`;
@@ -252,9 +252,23 @@ async function updateUserBalance(changeAmount) {
         return true;
     } catch (e) {
         console.error('Ошибка обновления баланса:', e);
-        showToast('Ошибка обновления баланса!', '#ff2a6d');
+        showToast('Ошибка обновления баланса! Попробуйте ещё раз', '#ff2a6d');
         return false;
     }
+}
+
+// Функция для безопасного обновления баланса с повторной попыткой
+async function safeUpdateBalance(changeAmount, retries = 2) {
+    for (let i = 0; i < retries; i++) {
+        const success = await updateUserBalance(changeAmount);
+        if (success) return true;
+        
+        if (i < retries - 1) {
+            console.log(`Повторная попытка обновления баланса... (${i + 1}/${retries})`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    }
+    return false;
 }
 
 async function addToHistory(gameName, bet, winAmount, result) {
