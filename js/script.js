@@ -576,7 +576,68 @@ class NeonTetris {
         });
     }
 }
+// ========== СЕНСОРНОЕ УПРАВЛЕНИЕ ДЛЯ ТЕЛЕФОНОВ ==========
 
+// Управление змейкой через кнопки
+function setupSnakeTouchControls() {
+    const buttons = document.querySelectorAll('.snake-controls .control-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!snakeGame || !snakeGame.gameRunning) return;
+            
+            const dir = btn.dataset.dir;
+            switch(dir) {
+                case 'up': snakeGame.setDirection(0, -1); break;
+                case 'down': snakeGame.setDirection(0, 1); break;
+                case 'left': snakeGame.setDirection(-1, 0); break;
+                case 'right': snakeGame.setDirection(1, 0); break;
+            }
+            
+            // Визуальная обратная связь
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = ''; }, 100);
+        });
+    });
+}
+
+// Управление тетрисом через кнопки
+function setupTetrisTouchControls() {
+    const buttons = document.querySelectorAll('.tetris-controls .tetris-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!tetrisGame || !tetrisGame.gameRunning) return;
+            
+            const action = btn.dataset.action;
+            switch(action) {
+                case 'left': tetrisGame.moveLeft(); break;
+                case 'right': tetrisGame.moveRight(); break;
+                case 'rotate': tetrisGame.rotate(); break;
+                case 'down': tetrisGame.update(); break;
+                case 'harddrop': tetrisGame.hardDrop(); break;
+            }
+            
+            // Визуальная обратная связь
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = ''; }, 100);
+        });
+    });
+}
+
+// Предотвращаем скролл страницы при нажатии на кнопки на телефоне
+document.querySelectorAll('.control-btn, .tetris-btn').forEach(btn => {
+    btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btn.click();
+    });
+});
+
+// Вызываем настройку после загрузки страницы
+setTimeout(() => {
+    setupSnakeTouchControls();
+    setupTetrisTouchControls();
+}, 500);
 // ========== ИГРА 3: ДИНОЗАВРИК ==========
 class NeonDino {
     constructor(canvasId, scoreId, highScoreId) {
