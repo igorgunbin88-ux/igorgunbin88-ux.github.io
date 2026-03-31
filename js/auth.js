@@ -207,7 +207,7 @@ async function addCasinoBalanceCloud(username, amount) {
     try {
         const user = await loadUserFromCloud(username);
         if (user) {
-            const newBalance = (user.casinoBalance || 5000) + amount;
+            const newBalance = (user.casinoBalance || 250) + amount;
             await supabaseClient.update('users', { casino_balance: newBalance }, username);
             return true;
         }
