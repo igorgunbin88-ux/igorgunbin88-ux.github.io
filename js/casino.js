@@ -212,14 +212,32 @@ async function updateUserBalance(changeAmount) {
     if (newBalance < 0) return false;
     
     try {
+        // Обновляем в облаке
         await supabaseClient.update('users', { casino_balance: newBalance }, currentUser.username);
+        
+        // Обновляем локальные данные
         currentUser.casinoBalance = newBalance;
+        
+        // МГНОВЕННО ОБНОВЛЯЕМ UI
         updateBalanceUI();
+        
+        // Также обновляем отображение в userDisplay на главной странице (если есть)
+        const userDisplay = document.getElementById('userDisplay');
+        if (userDisplay && currentUser) {
+            userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance}`;
+        }
+        
+        // Обновляем баланс в админ-панели (если открыта)
+        const adminUserSelect = document.getElementById('adminUserSelect');
+        if (adminUserSelect && adminUserSelect.value === currentUser.username) {
+            updateCasinoUserSelect();
+            updateCasinoStats();
+        }
+        
         return true;
     } catch (e) {
         console.error('Ошибка обновления баланса:', e);
-        showToast('Идёт обновление баланса', '#ff2a6d');
-        showToast('Пожалуйста, подождите', '#ff2a6d');
+        showToast('Ошибка обновления баланса!', '#ff2a6d');
         return false;
     }
 }
