@@ -9,18 +9,33 @@ const supabaseClient = {
     key: SUPABASE_ANON_KEY,
     
     async request(endpoint, options = {}) {
-        const response = await fetch(`${this.url}/rest/v1${endpoint}`, {
-            ...options,
-            headers: {
-                'apikey': this.key,
-                'Authorization': `Bearer ${this.key}`,
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
-        if (!response.ok) throw new Error(await response.text());
-        return response.json();
-    },
+    const response = await fetch(`${this.url}/rest/v1${endpoint}`, {
+        ...options,
+        headers: {
+            'apikey': this.key,
+            'Authorization': `Bearer ${this.key}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
+    }
+    
+    // Проверяем, есть ли содержимое в ответе
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        const text = await response.text();
+        if (text && text.length > 0) {
+            return JSON.parse(text);
+        }
+        return {}; // Возвращаем пустой объект для пустого ответа
+    }
+    
+    return {}; // Для не-JSON ответов
+}
     
     async query(table, params = {}) {
         let url = `/${table}?select=*`;
@@ -36,12 +51,11 @@ const supabaseClient = {
     },
     
     async update(table, data, username) {
-        return this.request(`/${table}?username=eq.${encodeURIComponent(username)}`, {
-            method: 'PATCH',
-            body: JSON.stringify(data)
-        });
-    }
-};
+    return this.request(`/${table}?username=eq.${encodeURIComponent(username)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    });
+}
 
 // Хеширование пароля (SHA-256)
 async function hashPassword(password) {
