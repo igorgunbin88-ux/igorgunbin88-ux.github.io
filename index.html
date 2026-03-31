@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Flux | Кибер-платформа</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+    <header class="neo-header">
+        <div class="logo">✦ NEON FLUX</div>
+        <div class="header-right">
+            <span id="userDisplay" class="user-greeting"></span>
+            <button id="loginBtn" class="btn-neon btn-pink">🔓 Войти</button>
+            <button id="logoutBtn" class="btn-neon" style="display:none;">🚪 Выйти</button>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>Пульс будущего</h1>
+        <p>Динамичный неон, живой интерфейс и продвинутая анимация. Погрузись в атмосферу кибер-стиля с интерактивом.</p>
+        <button id="magicGlowBtn" class="glow-btn">✨ Активировать эффект</button>
+    </section>
+
+    <!-- Статистика пользователя -->
+    <div id="userStatsPanel" class="stats-panel hidden">
+        <h3>👤 Ваша статистика</h3>
+        <p>🎮 Игр сыграно: <span id="userGamesPlayed">0</span></p>
+        <p>🏆 Лучшие результаты:</p>
+        <ul style="margin-left: 20px; margin-top: 10px;">
+            <li>🐍 Змейка: <span id="userSnakeScore">0</span></li>
+            <li>🧩 Тетрис: <span id="userTetrisScore">0</span></li>
+            <li>🦖 Runner: <span id="userDinoScore">0</span></li>
+            <li>🐦 Флэппи бёрд: <span id="userFlappyScore">0</span></li>
+            <li>🧠 Мемори: <span id="userMemoryScore">0</span></li>
+        </ul>
+        <p>📅 Зарегистрирован: <span id="userRegDate">—</span></p>
+    </div>
+
+    <!-- Технологии -->
+    <h2 class="section-title">⚡ Технологии & дизайн</h2>
+    <div class="cards-grid-2">
+        <div class="card-2" data-tech="AI">
+            <div class="card-icon-2">🧠</div>
+            <h3>ИИ-интеграции</h3>
+            <p>Нейросети и машинное зрение, генерация уникального контента в реальном времени.</p>
+        </div>
+        <div class="card-2" data-tech="3D">
+            <div class="card-icon-2">🌐</div>
+            <h3>WebGL эффекты</h3>
+            <p>Трёхмерные сцены и частицы, создающие глубину неонового пространства.</p>
+        </div>
+        <div class="card-2" data-tech="web3">
+            <div class="card-icon-2">🔗</div>
+            <h3>Web3 совместимость</h3>
+            <p>Кошельки, смарт-контракты и децентрализованные решения.</p>
+        </div>
+        <div class="card-2" data-tech="XR">
+            <div class="card-icon-2">🥽</div>
+            <h3>AR/VR поддержка</h3>
+            <p>Иммерсивный опыт с дополненной и виртуальной реальностью.</p>
+        </div>
+        <div class="card-2" data-tech="quantum">
+            <div class="card-icon-2">⚛️</div>
+            <h3>Квантовые алгоритмы</h3>
+            <p>Экспериментальные вычисления на квантовых симуляторах.</p>
+        </div>
+        <div class="card-2" data-tech="bio">
+            <div class="card-icon-2">🧬</div>
+            <h3>Био-хакинг</h3>
+            <p>Интеграция с биосенсорами и нейроинтерфейсами.</p>
+        </div>
+    </div>
+
+     <h2 class="section-title">🎮 Выбери игру</h2>
+    <div class="game-selector">
+        <button class="game-select-btn active" data-game="snake">🐍 Змейка</button>
+        <button class="game-select-btn" data-game="tetris">🧩 Тетрис</button>
+        <button class="game-select-btn" data-game="dino">🦖 Бегун</button>
+        <button class="game-select-btn" data-game="flappy">🐦 Флэппи бёрд</button>
+        <button class="game-select-btn" data-game="memory">🧠 Мемори</button>
+    </div>
+
+     <!-- КОНТЕЙНЕРЫ ДЛЯ ИГР -->
+    <!-- Змейка -->
+<div id="gameSnake" class="game-container active">
+    <h3>🐍 Neon Snake</h3>
+    <div class="game-info">
+        <div>🍎 Счёт: <span id="snakeScore">0</span></div>
+        <div>🏆 Рекорд: <span id="snakeHighScore">0</span></div>
+    </div>
+    <canvas id="snakeCanvas" width="400" height="400"></canvas>
+    <button class="game-start-btn" data-game="snake">▶ Новая игра</button>
+    
+    <!-- Сенсорное управление для змейки -->
+    <div class="touch-controls snake-controls">
+        <div class="control-row">
+            <button class="control-btn" data-dir="up">⬆️</button>
+        </div>
+        <div class="control-row">
+            <button class="control-btn" data-dir="left">⬅️</button>
+            <button class="control-btn" data-dir="down">⬇️</button>
+            <button class="control-btn" data-dir="right">➡️</button>
+        </div>
+    </div>
+    <p class="game-hint">⬆️ ⬇️ ⬅️ ➡️ — управление | 📱 Нажми на кнопки на телефоне</p>
+</div>
+
+    <!-- Тетрис -->
+<div id="gameTetris" class="game-container hidden">
+    <h3>🧩 Neon Tetris</h3>
+    <div class="tetris-layout">
+        <canvas id="tetrisCanvas" width="300" height="600"></canvas>
+        <div class="tetris-info">
+            <div>📊 Счёт: <span id="tetrisScore">0</span></div>
+            <div>🏆 Рекорд: <span id="tetrisHighScore">0</span></div>
+            <div>📦 Уровень: <span id="tetrisLevel">1</span></div>
+            <div>⏹️ Линии: <span id="tetrisLines">0</span></div>
+            <button class="game-start-btn" data-game="tetris">▶ Новая игра</button>
+            
+            <!-- Сенсорное управление для тетриса -->
+            <div class="touch-controls tetris-controls">
+                <div class="control-row">
+                    <button class="control-btn tetris-btn" data-action="left">⬅️</button>
+                    <button class="control-btn tetris-btn" data-action="right">➡️</button>
+                </div>
+                <div class="control-row">
+                    <button class="control-btn tetris-btn" data-action="rotate">🔄 Поворот</button>
+                    <button class="control-btn tetris-btn" data-action="down">⬇️ Вниз</button>
+                    <button class="control-btn tetris-btn" data-action="harddrop">💥 Сброс</button>
+                </div>
+            </div>
+            
+            <div class="tetris-controls">
+                <p>⬅️ ➡️ — движение</p>
+                <p>⬆️ — поворот</p>
+                <p>⬇️ — ускорение</p>
+                <p>␣ — сброс вниз</p>
+                <p style="color:#ffd700;">📱 Нажми на кнопки на телефоне</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Динозаврик -->
+    <div id="gameDino" class="game-container hidden">
+        <h3>🦖 Бегун</h3>
+        <div class="game-info">
+            <div>🏃 Счёт: <span id="dinoScore">0</span></div>
+            <div>🏆 Рекорд: <span id="dinoHighScore">0</span></div>
+        </div>
+        <canvas id="dinoCanvas" width="800" height="200"></canvas>
+        <button class="game-start-btn" data-game="dino">▶ Новая игра</button>
+        <p class="game-hint">␣ или ⬆️ — прыжок</p>
+    </div>
+
+    <!-- Флэппи бёрд -->
+    <div id="gameFlappy" class="game-container hidden">
+        <h3>🐦 Neon Flappy Bird</h3>
+        <div class="game-info">
+            <div>🐤 Счёт: <span id="flappyScore">0</span></div>
+            <div>🏆 Рекорд: <span id="flappyHighScore">0</span></div>
+        </div>
+        <canvas id="flappyCanvas" width="400" height="500"></canvas>
+        <button class="game-start-btn" data-game="flappy">▶ Новая игра</button>
+        <p class="game-hint">␣ или клик мышью — взмах крыльями</p>
+    </div>
+
+    <!-- Мемори -->
+    <div id="gameMemory" class="game-container hidden">
+        <h3>🧠 Neon Memory</h3>
+        <div class="game-info">
+            <div>🎯 Пары: <span id="memoryPairs">0</span>/8</div>
+            <div>🏆 Лучшее время: <span id="memoryBestTime">—</span></div>
+        </div>
+        <div id="memoryBoard" class="memory-board"></div>
+        <button class="game-start-btn" data-game="memory">▶ Новая игра</button>
+        <p class="game-hint">Нажми на карточки, чтобы найти пары</p>
+    </div>
+
+    <!-- Динамический блок: генератор фактов + счетчик кликов -->
+    <div class="dynamic-box">
+        <div class="fact-area">
+            <h3>📡 Случайный факт</h3>
+            <div class="fact-text" id="randomFact">Нажмите "Новый факт" чтобы узнать нечто удивительное...</div>
+            <button id="newFactBtn" class="tiny-btn" style="margin-top: 16px;">🌀 Новый факт</button>
+        </div>
+        <div class="click-counter">
+            <div class="counter-number" id="clickCountDisplay">0</div>
+            <div>🔥 кликов по кнопкам</div>
+            <button id="resetCounterBtn" class="tiny-btn">Сброс</button>
+        </div>
+    </div>
+
+    <!-- Уникальная фишка: Терменвокс (звук при движении мыши) -->
+    <h2 class="section-title">🎵 Neon Theremin (двигай мышью)</h2>
+    <div id="thereminZone" class="theremin-zone">
+        <p>🎶 Води мышкой по этой зоне — частота звука меняется!</p>
+        <p>Частота: <span id="freqValue">0</span> Гц</p>
+    </div>
+
+    <!-- Уникальная фишка: Матрица кода (дождь из символов) -->
+    <h2 class="section-title">💊 Matrix Rain</h2>
+    <button id="toggleMatrixBtn" class="tiny-btn">🌧 Включить Matrix Rain</button>
+    <canvas id="matrixCanvas" class="matrix-canvas hidden"></canvas>
+
+    <!-- Админ-панель (Не трогайте)-->
+<div id="adminPanel" class="admin-panel hidden">
+    <h2>👑 Админ-панель</h2>
+    <div class="admin-tabs">
+        <button id="adminUsersTab" class="tiny-btn active">👥 Пользователи</button>
+        <button id="adminContentTab" class="tiny-btn">📝 Управление контентом</button>
+        <button id="adminCasinoTab" class="tiny-btn">🎰 Казино</button>
+    </div>
+    <div id="adminUsersList" class="admin-section">
+        <h3>Зарегистрированные пользователи</h3>
+        <div id="usersListContainer"></div>
+        <button id="clearAllUsersBtn" class="danger-btn">⚠️ Удалить всех пользователей</button>
+    </div>
+    <div id="adminContentEditor" class="admin-section hidden">
+        <h3>Редактировать приветственный текст</h3>
+        <textarea id="adminHeroText" rows="3" style="width:100%"></textarea>
+        <button id="saveHeroTextBtn" class="tiny-btn">💾 Сохранить</button>
+        <h3 style="margin-top:20px">Управление фактами</h3>
+        <div id="factsListAdmin"></div>
+        <input type="text" id="newFactInput" placeholder="Новый факт">
+        <button id="addFactBtn" class="tiny-btn">➕ Добавить факт</button>
+    </div>
+    <div id="adminCasinoPanel" class="admin-section hidden">
+        <h3>🎰 Управление казино</h3>
+        <div style="margin: 20px 0;">
+            <label style="display: block; margin-bottom: 10px;">Выберите пользователя:</label>
+            <select id="adminUserSelect" class="bet-input" style="width: 100%; margin-bottom: 15px;">
+                <option value="">Выберите пользователя</option>
+            </select>
+            <label style="display: block; margin-bottom: 10px;">Сумма начисления:</label>
+            <input type="number" id="adminBalanceAmount" class="bet-input" placeholder="Сумма" value="100" style="width: 100%; margin-bottom: 15px;">
+            <button id="addBalanceBtn" class="glow-btn" style="width: 100%;">💰 Начислить очки</button>
+        </div>
+        <div style="margin-top: 30px;">
+            <h4>📊 Статистика казино</h4>
+            <div id="casinoStats" style="background: #010103; padding: 15px; border-radius: 20px; margin-top: 10px;">
+                <p>Всего игроков: <span id="casinoTotalPlayers">0</span></p>
+                <p>Общий баланс: <span id="casinoTotalBalance">0</span></p>
+                <p>Средний баланс: <span id="casinoAvgBalance">0</span></p>
+            </div>
+        </div>
+        <div style="margin-top: 30px;">
+            <h4>🏆 Топ игроков</h4>
+            <div id="casinoTopPlayers" style="background: #010103; padding: 15px; border-radius: 20px; margin-top: 10px;"></div>
+        </div>
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="casino.html" target="_blank" class="nav-link" style="display: inline-block;">🎲 Перейти в казино</a>
+        </div>
+    </div>
+</div>
+
+
+    <!-- Новости/анонсы -->
+    <h2 class="section-title">📰 Neon Новости</h2>
+    <div class="news-grid" id="newsGrid">
+        <div class="news-card">🎉 Обновление 2.0: добавлена игра Snake!</div>
+        <div class="news-card">🔧 Админ-панель: управляйте контентом</div>
+        <div class="news-card">🎵 Экспериментальный терменвокс — играй звуком!</div>
+        <div class="news-card">🌧 Matrix Rain — эффект как в фильме</div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-links">
+        <a class="footer-link" id="contactFooterBtn">📧 Связаться с нами</a>
+        <a class="footer-link" id="aboutFooterBtn">📖 О проекте</a>
+        <a class="footer-link" id="docsFooterBtn">📜 Документация</a>
+        <a class="footer-link" href="casino.html">🎰 Казино</a>
+        <a class="footer-link" id="adminFooterBtn" style="display:none;">👑 Админ-панель</a>
+    </div>
+    <p style="opacity: 0.7; font-size: 0.85rem;">© 2026 Neon Flux — экспериментальная платформа</p>
+</footer>
+
+<!-- Модалка регистрации/авторизации -->
+<div id="authModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeAuthModal">&times;</span>
+        <h2 id="authModalTitle">🔐 Авторизация</h2>
+        <input type="text" id="authUsername" placeholder="Имя пользователя">
+        <input type="password" id="authPassword" placeholder="Пароль">
+        <p id="authError" class="error-text"></p>
+        <button id="authSubmitBtn" class="google-btn">Войти</button>
+        <p><a href="#" id="switchAuthMode">Нет аккаунта? Зарегистрироваться</a></p>
+    </div>
+</div>
+
+<!-- Модалка обратной связи -->
+<div id="contactModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeContactModal">&times;</span>
+        <h2>💬 Обратная связь</h2>
+        <textarea id="messageInput" rows="3" placeholder="Ваше сообщение или идея..."></textarea>
+        <button id="sendMsgBtn" class="btn-neon" style="width:100%; margin-top: 8px;">Отправить</button>
+        <span class="logo">*пока не работает</span>
+    </div>
+</div>
+
+<!-- Модалка "О проекте" -->
+<div id="aboutModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeAboutModal">&times;</span>
+        <h2>✨ О Neon Flux</h2>
+        <p>Современный взгляд на веб-дизайн с акцентом на неоновую эстетику, микро-анимации и динамический контент. Сайт демонстрирует продвинутые JS-эффекты и полностью кастомизируемую атмосферу.</p>
+        <p style="margin-top: 15px;">Версия 3.0 — мини-игра, регистрация, админ-панель, терменвокс, matrix rain!</p>
+    </div>
+</div>
+<script src="js/auth.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>

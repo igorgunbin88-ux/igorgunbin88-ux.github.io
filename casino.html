@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Flux | Казино</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+    <header class="neo-header">
+        <div class="logo">✦ NEON FLUX CASINO</div>
+        <div class="header-right">
+            <span id="userDisplay" class="user-greeting"></span>
+            <a href="index.html" class="nav-link">🎮 Игры</a>
+            <button id="loginBtn" class="btn-neon btn-pink">🔓 Войти</button>
+            <button id="logoutBtn" class="btn-neon" style="display:none;">🚪 Выйти</button>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1><span>🎰</span> КАЗИНО</h1>
+        <p>10 игр с разными шансами на победу. Рискни и умножь свои очки!</p>
+    </section>
+
+    <!-- Баланс -->
+    <div class="balance-card">
+        <h3>💰 Твой баланс</h3>
+        <div class="balance-amount" id="balanceAmount">0</div>
+        <p style="margin-top: 10px; opacity: 0.7;">🎲 Выбери игру и сделай ставку!</p>
+    </div>
+
+    <!-- ВЫБОР ИГР КАЗИНО -->
+    <div class="casino-game-selector">
+        <button class="casino-game-btn active" data-game="slots">🎰 Слоты</button>
+        <button class="casino-game-btn" data-game="dice">🎲 Кости</button>
+        <button class="casino-game-btn" data-game="cards">🃏 Карты</button>
+        <button class="casino-game-btn" data-game="wheel">🎡 Колесо фортуны</button>
+        <button class="casino-game-btn" data-game="races">🏁 Гонки</button>
+        <button class="casino-game-btn" data-game="mines">💣 Сапёр</button>
+        <button class="casino-game-btn" data-game="blackjack">🃏 Блэкджек</button>
+        <button class="casino-game-btn" data-game="poker">♠️ Покер</button>
+        <button class="casino-game-btn" data-game="crash">📈 Crash</button>
+        <button class="casino-game-btn" data-game="plinko">🔴 Плинко</button>
+    </div>
+
+    <!-- ИГРА 1: СЛОТЫ (УВЕЛИЧЕН ШАНС) -->
+    <div id="gameSlots" class="casino-game-container active">
+        <h2>🎰 Слот-машина "Neon Fever"</h2>
+        <p>Шанс выигрыша: ~55% | Макс. множитель: x15</p>
+        <div class="slot-machine">
+            <div class="slot-reel" id="reel1">🍒</div>
+            <div class="slot-reel" id="reel2">🍒</div>
+            <div class="slot-reel" id="reel3">🍒</div>
+        </div>
+        <div class="bet-control">
+            <input type="number" id="slotBet" class="bet-input" value="10" min="1">
+            <button id="spinBtn" class="glow-btn">🎲 Крутить</button>
+        </div>
+        <div id="slotResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 2: КОСТИ -->
+    <div id="gameDice" class="casino-game-container">
+        <h2>🎲 Кости "Neon Dice"</h2>
+        <p>Угадай число от 1 до 6 | Выигрыш: ставка ×5 | Шанс: 16.7%</p>
+        <div class="bet-control">
+            <input type="number" id="diceBet" class="bet-input" value="10" min="1">
+            <select id="diceGuess" class="bet-input" style="width: auto;">
+                <option value="1">🎲 1</option>
+                <option value="2">🎲 2</option>
+                <option value="3">🎲 3</option>
+                <option value="4">🎲 4</option>
+                <option value="5">🎲 5</option>
+                <option value="6">🎲 6</option>
+            </select>
+            <button id="rollDiceBtn" class="glow-btn">🎲 Бросить</button>
+        </div>
+        <div id="diceResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 3: КАРТЫ (БОЛЬШЕ/МЕНЬШЕ) -->
+    <div id="gameCards" class="casino-game-container">
+        <h2>🃏 Neon Cards</h2>
+        <p>Угадай, будет карта больше или меньше 7 | Выигрыш: ставка ×2</p>
+        <div class="bet-control">
+            <input type="number" id="cardBet" class="bet-input" value="10" min="1">
+            <button id="higherBtn" class="btn-neon">⬆️ Больше 7</button>
+            <button id="lowerBtn" class="btn-neon">⬇️ Меньше 7</button>
+        </div>
+        <div id="cardResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 4: КОЛЕСО ФОРТУНЫ -->
+    <div id="gameWheel" class="casino-game-container">
+        <h2>🎡 Колесо фортуны</h2>
+        <p>Крути колесо и получай множитель от x0 до x10!</p>
+        <div class="wheel" id="wheel">🎡</div>
+        <div class="bet-control">
+            <input type="number" id="wheelBet" class="bet-input" value="10" min="1">
+            <button id="spinWheelBtn" class="glow-btn">🎡 Крутить</button>
+        </div>
+        <div id="wheelResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 5: ГОНКИ -->
+    <div id="gameRaces" class="casino-game-container">
+        <h2>🏁 Neon Races</h2>
+        <p>Выбери машину и делай ставку! Шанс победы: 33.3% | Выигрыш: ставка ×3</p>
+        <div class="race-track" id="raceTrack">
+            <div class="racer" data-racer="0">
+                <div>🏎️ Красный</div>
+                <div class="racer-progress"><div class="racer-bar" id="racer0Bar"></div></div>
+            </div>
+            <div class="racer" data-racer="1">
+                <div>🚗 Синий</div>
+                <div class="racer-progress"><div class="racer-bar" id="racer1Bar"></div></div>
+            </div>
+            <div class="racer" data-racer="2">
+                <div>🚙 Зелёный</div>
+                <div class="racer-progress"><div class="racer-bar" id="racer2Bar"></div></div>
+            </div>
+        </div>
+        <div class="bet-control">
+            <input type="number" id="raceBet" class="bet-input" value="10" min="1">
+            <select id="raceChoice" class="bet-input" style="width: auto;">
+                <option value="0">🏎️ Красный</option>
+                <option value="1">🚗 Синий</option>
+                <option value="2">🚙 Зелёный</option>
+            </select>
+            <button id="startRaceBtn" class="glow-btn">🏁 Старт!</button>
+        </div>
+        <div id="raceResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 6: САПЁР (МИНЫ) -->
+    <div id="gameMines" class="casino-game-container">
+        <h2>💣 Neon Mines</h2>
+        <p>Открой 3 безопасных ячейки из 9 и получи выигрыш! Шанс: ~29% | Выигрыш: ставка ×5</p>
+        <div id="minesGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 300px; margin: 20px auto;"></div>
+        <div class="bet-control">
+            <input type="number" id="minesBet" class="bet-input" value="10" min="1">
+            <button id="playMinesBtn" class="glow-btn">💣 Начать</button>
+        </div>
+        <div id="minesResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 7: БЛЭКДЖЕК -->
+    <div id="gameBlackjack" class="casino-game-container">
+        <h2>🃏 Neon Blackjack</h2>
+        <p>Набери 21 очко или больше, чем дилер! Выигрыш: ставка ×2</p>
+        <div class="cards-area">
+            <div>
+                <h4>Ваши карты</h4>
+                <div id="playerCards" style="font-size: 2rem;">🃟</div>
+                <div>Очки: <span id="playerScore">0</span></div>
+            </div>
+            <div>
+                <h4>Карты дилера</h4>
+                <div id="dealerCards" style="font-size: 2rem;">🃟</div>
+                <div>Очки: <span id="dealerScore">0</span></div>
+            </div>
+        </div>
+        <div class="bet-control">
+            <input type="number" id="bjBet" class="bet-input" value="10" min="1">
+            <button id="hitBtn" class="btn-neon">🎴 Взять карту</button>
+            <button id="standBtn" class="btn-neon">🛑 Хватит</button>
+            <button id="newBjBtn" class="glow-btn">🃏 Новая игра</button>
+        </div>
+        <div id="bjResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 8: ПОКЕР (ПРОСТАЯ ВЕРСИЯ) -->
+    <div id="gamePoker" class="casino-game-container">
+        <h2>♠️ Neon Poker</h2>
+        <p>Собери комбинацию из 5 карт! Выигрыш зависит от комбинации</p>
+        <div id="pokerCards" style="display: flex; justify-content: center; gap: 15px; margin: 30px 0; font-size: 3rem;"></div>
+        <div class="bet-control">
+            <input type="number" id="pokerBet" class="bet-input" value="10" min="1">
+            <button id="dealPokerBtn" class="glow-btn">♠️ Сдать карты</button>
+        </div>
+        <div id="pokerResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 9: CRASH -->
+    <div id="gameCrash" class="casino-game-container">
+        <h2>📈 Neon Crash</h2>
+        <p>Множитель растёт, но может "крашнуться" в любой момент! Забери деньги вовремя</p>
+        <div style="font-size: 4rem; margin: 20px;" id="crashMultiplier">1.00x</div>
+        <div class="bet-control">
+            <input type="number" id="crashBet" class="bet-input" value="10" min="1">
+            <button id="startCrashBtn" class="glow-btn">📈 Старт</button>
+            <button id="cashoutBtn" class="btn-neon" style="display: none;">💰 Забрать</button>
+        </div>
+        <div id="crashResult" class="result-message"></div>
+    </div>
+
+    <!-- ИГРА 10: ПЛИНКО -->
+    <div id="gamePlinko" class="casino-game-container">
+        <h2>🔴 Neon Plinko</h2>
+        <p>Шарик падает и попадает в ячейки с множителями от x0.5 до x5</p>
+        <div style="display: flex; justify-content: center; gap: 10px; margin: 30px 0; font-size: 1.5rem;">
+            <span>0.5x</span><span>1x</span><span>2x</span><span>3x</span><span>5x</span><span>3x</span><span>2x</span><span>1x</span><span>0.5x</span>
+        </div>
+        <div class="bet-control">
+            <input type="number" id="plinkoBet" class="bet-input" value="10" min="1">
+            <button id="dropPlinkoBtn" class="glow-btn">🔴 Бросить шарик</button>
+        </div>
+        <div id="plinkoResult" class="result-message"></div>
+    </div>
+
+    <!-- История игр -->
+    <div class="dynamic-box">
+        <div class="fact-area">
+            <h3>📜 История игр</h3>
+            <div id="gameHistory" style="max-height: 200px; overflow-y: auto;">
+                <p style="opacity: 0.7;">Сыграйте в любую игру, чтобы увидеть историю</p>
+            </div>
+        </div>
+        <div class="click-counter">
+            <div class="counter-number" id="clickCountDisplay">0</div>
+            <div>🔥 кликов по кнопкам</div>
+            <button id="resetCounterBtn" class="tiny-btn">Сброс</button>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-links">
+        <a class="footer-link" id="contactFooterBtn">📧 Связаться с нами</a>
+        <a class="footer-link" id="aboutFooterBtn">📖 О проекте</a>
+        <a class="footer-link" id="backToGamesBtn">🎮 К играм</a>
+    </div>
+    <p style="opacity: 0.7; font-size: 0.85rem;">© 2026 Neon Flux — 10 игр в казино. Играй ответственно!</p>
+</footer>
+
+<!-- Модалки -->
+<div id="authModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeAuthModal">&times;</span>
+        <h2 id="authModalTitle">🔐 Авторизация</h2>
+        <input type="text" id="authUsername" placeholder="Имя пользователя">
+        <input type="password" id="authPassword" placeholder="Пароль">
+        <p id="authError" class="error-text"></p>
+        <button id="authSubmitBtn" class="google-btn">Войти</button>
+        <p><a href="#" id="switchAuthMode">Нет аккаунта? Зарегистрироваться</a></p>
+    </div>
+</div>
+
+<div id="contactModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeContactModal">&times;</span>
+        <h2>💬 Обратная связь</h2>
+        <textarea id="messageInput" rows="3" placeholder="Ваше сообщение или идея..."></textarea>
+        <button id="sendMsgBtn" class="btn-neon" style="width:100%; margin-top: 8px;">Отправить</button>
+    </div>
+</div>
+
+<div id="aboutModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeAboutModal">&times;</span>
+        <h2>✨ О Neon Casino</h2>
+        <p>10 увлекательных игр: Слоты, Кости, Карты, Колесо фортуны, Гонки, Сапёр, Блэкджек, Покер, Crash, Плинко!</p>
+        <p style="margin-top: 15px;">🎰 Увеличенные шансы на выигрыш для твоего удовольствия!</p>
+    </div>
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/casino.js"></script>
+</body>
+</html>
