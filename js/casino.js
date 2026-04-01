@@ -6,23 +6,28 @@ let crashInterval = null;
 let crashActive = false;
 let currentMultiplier = 1.0;
 
-// Функция проверки соединения с Supabase
-async function checkConnection() {
-    try {
-        const users = await getAllUsersCloud();
-        return users !== null;
-    } catch (e) {
-        console.error('Нет соединения с сервером:', e);
-        showToast('⚠️ Нет соединения с сервером! Баланс может не обновляться', '#ff2a6d');
-        return false;
-    }
+// ========== ПРОВЕРКА ЗАГРУЗКИ AUTH.JS ==========
+function waitForAuth() {
+    return new Promise((resolve) => {
+        if (typeof window.restoreSession !== 'undefined') {
+            resolve(true);
+        } else {
+            console.log('⏳ Casino: Ожидание загрузки auth.js...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.restoreSession !== 'undefined') {
+                    clearInterval(checkInterval);
+                    resolve(true);
+                }
+            }, 100);
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.error('❌ Casino: auth.js не загружен!');
+                resolve(false);
+            }, 5000);
+        }
+    });
 }
 
-// Проверяем соединение при загрузке страницы
-window.addEventListener('load', async () => {
-    await checkConnection();
-    // ... остальной код
-});
 // ========== ФУНКЦИИ UI ДЛЯ КАЗИНО ==========
 async function updateUIForUser() {
     const loginBtn = document.getElementById('loginBtn');
@@ -42,28 +47,13 @@ async function updateUIForUser() {
 }
 
 function updateBalanceUI() {
-    // Обновляем баланс на странице казино
     const balanceSpan = document.getElementById('balanceAmount');
+    const userDisplay = document.getElementById('userDisplay');
     if (balanceSpan && currentUser) {
         balanceSpan.textContent = currentUser.casinoBalance || 5000;
     }
-    
-    // Обновляем отображение пользователя (в шапке)
-    const userDisplay = document.getElementById('userDisplay');
     if (userDisplay && currentUser) {
         userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
-    }
-    
-    // Обновляем статистику в админ-панели (если открыта)
-    const casinoTotalBalanceSpan = document.getElementById('casinoTotalBalance');
-    if (casinoTotalBalanceSpan) {
-        updateCasinoStats();
-    }
-    
-    // Обновляем селект пользователей в админ-панели
-    const adminUserSelect = document.getElementById('adminUserSelect');
-    if (adminUserSelect && adminUserSelect.value === currentUser?.username) {
-        updateCasinoUserSelect();
     }
 }
 
@@ -74,26 +64,18 @@ async function updateUserBalance(changeAmount) {
     if (newBalance < 0) return false;
     
     try {
-        // Обновляем в облаке
-        const result = await supabaseClient.update('users', { casino_balance: newBalance }, currentUser.username);
+        if (typeof window.supabaseClient === 'undefined') {
+            console.error('supabaseClient не определён');
+            return false;
+        }
         
-        // Обновляем локальные данные (даже если ответ пустой)
+        await window.supabaseClient.update('users', { casino_balance: newBalance }, currentUser.username);
         currentUser.casinoBalance = newBalance;
-        
-        // МГНОВЕННО ОБНОВЛЯЕМ UI
         updateBalanceUI();
         
-        // Также обновляем отображение в userDisplay на главной странице
         const userDisplay = document.getElementById('userDisplay');
         if (userDisplay && currentUser) {
             userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance}`;
-        }
-        
-        // Обновляем баланс в админ-панели (если открыта)
-        const adminUserSelect = document.getElementById('adminUserSelect');
-        if (adminUserSelect && adminUserSelect.value === currentUser.username) {
-            updateCasinoUserSelect();
-            updateCasinoStats();
         }
         
         return true;
@@ -104,14 +86,11 @@ async function updateUserBalance(changeAmount) {
     }
 }
 
-// Функция для безопасного обновления баланса с повторной попыткой
 async function safeUpdateBalance(changeAmount, retries = 2) {
     for (let i = 0; i < retries; i++) {
         const success = await updateUserBalance(changeAmount);
         if (success) return true;
-        
         if (i < retries - 1) {
-            console.log(`Повторная попытка обновления баланса... (${i + 1}/${retries})`);
             await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
@@ -162,7 +141,6 @@ function displayGameHistory() {
     `).join('');
 }
 
-// ========== ТОСТЫ И СЧЁТЧИК ==========
 function showToast(message, color = '#05d9e8') {
     const toast = document.createElement('div');
     toast.className = 'success-toast';
@@ -804,14 +782,24 @@ function dropPlinko() {
 }
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
+// ========== ИНИЦИАЛИЗАЦИЯ ==========
 window.addEventListener('load', async () => {
+    // Ждём загрузку auth.js
+    const authLoaded = await waitForAuth();
+    if (!authLoaded) {
+        showToast('Ошибка загрузки системы авторизации! Обновите страницу', '#ff2a6d');
+        return;
+    }
+    
     // Восстановление сессии из облака
-    const user = await restoreSession();
-    if (user) {
-        currentUser = user;
-        updateUIForUser();
-        updateBalanceUI();
-        loadGameHistory();
+    if (typeof restoreSession !== 'undefined') {
+        const user = await restoreSession();
+        if (user) {
+            currentUser = user;
+            updateUIForUser();
+            updateBalanceUI();
+            loadGameHistory();
+        }
     }
     
     // Переключение игр
@@ -858,150 +846,17 @@ window.addEventListener('load', async () => {
     const resetCounterBtn = document.getElementById('resetCounterBtn');
     
     if (loginBtn) loginBtn.onclick = () => document.getElementById('authModal').classList.remove('hidden');
-    if (logoutBtn) logoutBtn.onclick = () => {
-        logoutCloud();
-        currentUser = null;
-        updateUIForUser();
-        showToast('Вы вышли из аккаунта', '#05d9e8');
-    };
+    if (logoutBtn) {
+        logoutBtn.onclick = () => {
+            if (typeof logoutCloud === 'function') logoutCloud();
+            currentUser = null;
+            updateUIForUser();
+            showToast('Вы вышли из аккаунта', '#05d9e8');
+        };
+    }
     if (closeAuthModal) closeAuthModal.onclick = () => document.getElementById('authModal').classList.add('hidden');
     if (backToGamesBtn) backToGamesBtn.onclick = () => window.location.href = 'index.html';
     if (resetCounterBtn) resetCounterBtn.onclick = () => { clickCounter = 0; const cd = document.getElementById('clickCountDisplay'); if(cd) cd.innerText = '0'; showToast('Счётчик обнулён', '#ff2a6d'); };
-    
-    // Админ-панель вкладки
-    const adminUsersTab = document.getElementById('adminUsersTab');
-    const adminContentTab = document.getElementById('adminContentTab');
-    const adminCasinoTab = document.getElementById('adminCasinoTab');
-    const adminUsersList = document.getElementById('adminUsersList');
-    const adminContentEditor = document.getElementById('adminContentEditor');
-    const adminCasinoPanel = document.getElementById('adminCasinoPanel');
-    const clearAllUsersBtn = document.getElementById('clearAllUsersBtn');
-    const saveHeroTextBtn = document.getElementById('saveHeroTextBtn');
-    const addFactBtn = document.getElementById('addFactBtn');
-    
-    if (adminUsersTab) {
-        adminUsersTab.onclick = async () => {
-            adminUsersTab.classList.add('active');
-            if (adminContentTab) adminContentTab.classList.remove('active');
-            if (adminCasinoTab) adminCasinoTab.classList.remove('active');
-            if (adminUsersList) adminUsersList.classList.remove('hidden');
-            if (adminContentEditor) adminContentEditor.classList.add('hidden');
-            if (adminCasinoPanel) adminCasinoPanel.classList.add('hidden');
-            await loadAdminUsersList();
-        };
-    }
-    
-    if (adminContentTab) {
-        adminContentTab.onclick = () => {
-            adminContentTab.classList.add('active');
-            if (adminUsersTab) adminUsersTab.classList.remove('active');
-            if (adminCasinoTab) adminCasinoTab.classList.remove('active');
-            if (adminUsersList) adminUsersList.classList.add('hidden');
-            if (adminContentEditor) adminContentEditor.classList.remove('hidden');
-            if (adminCasinoPanel) adminCasinoPanel.classList.add('hidden');
-            
-            const heroP = document.querySelector('.hero p');
-            const heroTextarea = document.getElementById('adminHeroText');
-            if (heroTextarea && heroP) heroTextarea.value = heroP.innerHTML;
-        };
-    }
-    
-    if (adminCasinoTab) {
-        adminCasinoTab.onclick = async () => {
-            adminCasinoTab.classList.add('active');
-            if (adminUsersTab) adminUsersTab.classList.remove('active');
-            if (adminContentTab) adminContentTab.classList.remove('active');
-            if (adminUsersList) adminUsersList.classList.add('hidden');
-            if (adminContentEditor) adminContentEditor.classList.add('hidden');
-            if (adminCasinoPanel) adminCasinoPanel.classList.remove('hidden');
-            
-            await updateCasinoUserSelect();
-            await updateCasinoStats();
-        };
-    }
-    
-    if (clearAllUsersBtn) {
-        clearAllUsersBtn.onclick = async () => {
-            if (confirm('Удалить ВСЕХ пользователей (кроме админа)?')) {
-                try {
-                    const users = await getAllUsersCloud();
-                    for (const user of users) {
-                        if (!user.isAdmin) {
-                            await supabaseClient.request(`/users?username=eq.${encodeURIComponent(user.username)}`, { method: 'DELETE' });
-                        }
-                    }
-                    showToast('Все пользователи удалены', '#ff2a6d');
-                    if (currentUser && !currentUser.isAdmin) {
-                        logoutCloud();
-                        currentUser = null;
-                        updateUIForUser();
-                    }
-                    await loadAdminUsersList();
-                    await updateCasinoUserSelect();
-                    await updateCasinoStats();
-                } catch (e) {
-                    showToast('Ошибка удаления', '#ff2a6d');
-                }
-            }
-        };
-    }
-    
-    if (saveHeroTextBtn) {
-        saveHeroTextBtn.onclick = () => {
-            const newText = document.getElementById('adminHeroText').value;
-            const heroP = document.querySelector('.hero p');
-            if (heroP && newText) {
-                heroP.innerHTML = newText;
-                showToast('Текст обновлён!', '#0f0');
-            }
-        };
-    }
-    
-    if (addFactBtn) {
-        addFactBtn.onclick = () => {
-            const newFactInput = document.getElementById('newFactInput');
-            const newFact = newFactInput ? newFactInput.value.trim() : '';
-            if (newFact) {
-                if (typeof factsArray !== 'undefined') {
-                    factsArray.push(newFact);
-                    if (typeof saveFacts === 'function') saveFacts();
-                }
-                if (newFactInput) newFactInput.value = '';
-                showToast('Факт добавлен!', '#0f0');
-            } else {
-                showToast('Введите текст факта!', '#ff2a6d');
-            }
-        };
-    }
-    
-    const addBalanceBtn = document.getElementById('addBalanceBtn');
-    if (addBalanceBtn) {
-        addBalanceBtn.onclick = addCasinoBalanceToUser;
-    }
-    
-    // Модалки
-    const contactFooterBtn = document.getElementById('contactFooterBtn');
-    const aboutFooterBtn = document.getElementById('aboutFooterBtn');
-    const closeContactModal = document.getElementById('closeContactModal');
-    const closeAboutModal = document.getElementById('closeAboutModal');
-    const sendMsgBtn = document.getElementById('sendMsgBtn');
-    
-    if (contactFooterBtn) contactFooterBtn.onclick = () => document.getElementById('contactModal').classList.remove('hidden');
-    if (aboutFooterBtn) aboutFooterBtn.onclick = () => document.getElementById('aboutModal').classList.remove('hidden');
-    if (closeContactModal) closeContactModal.onclick = () => document.getElementById('contactModal').classList.add('hidden');
-    if (closeAboutModal) closeAboutModal.onclick = () => document.getElementById('aboutModal').classList.add('hidden');
-    if (sendMsgBtn) {
-        sendMsgBtn.onclick = () => {
-            const msgInput = document.getElementById('messageInput');
-            const msg = msgInput ? msgInput.value.trim() : '';
-            if(msg) { 
-                showToast(`✅ Спасибо! "${msg.substring(0,30)}..."`, '#ff2a6d'); 
-                if (msgInput) msgInput.value = ''; 
-                const contactModal = document.getElementById('contactModal');
-                if (contactModal) contactModal.classList.add('hidden');
-            } else showToast('✏️ Напишите сообщение', '#ffaa44');
-        };
-    }
     
     // Регистрация/Логин
     let isLoginMode = true;
@@ -1038,12 +893,12 @@ window.addEventListener('load', async () => {
                 return;
             }
             
-            if (isLoginMode) {
+            if (isLoginMode && typeof loginUserCloud !== 'undefined') {
                 const res = await loginUserCloud(username, password);
                 if (res.success) {
                     currentUser = res.user;
-                    const authModal = document.getElementById('authModal');
-                    if (authModal) authModal.classList.add('hidden');
+                    const authModalEl = document.getElementById('authModal');
+                    if (authModalEl) authModalEl.classList.add('hidden');
                     updateUIForUser();
                     updateBalanceUI();
                     loadGameHistory();
@@ -1051,7 +906,7 @@ window.addEventListener('load', async () => {
                 } else {
                     if (authError) authError.textContent = res.error;
                 }
-            } else {
+            } else if (typeof registerUserCloud !== 'undefined') {
                 const res = await registerUserCloud(username, password);
                 if (res.success) {
                     showToast('Регистрация успешна! Теперь войдите.', '#05d9e8');
