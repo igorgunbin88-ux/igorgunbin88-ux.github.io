@@ -238,3 +238,16 @@ async function addCasinoBalanceCloud(username, amount) {
         return false;
     }
 }
+// ========== ГЛОБАЛЬНЫЙ ЭКСПОРТ ФУНКЦИЙ ==========
+window.restoreSession = restoreSession;
+window.loginUserCloud = loginUserCloud;
+window.registerUserCloud = registerUserCloud;
+window.logoutCloud = logoutCloud;
+window.updateUserStatsCloud = updateUserStatsCloud;
+window.getAllUsersCloud = getAllUsersCloud;
+window.addCasinoBalanceCloud = addCasinoBalanceCloud;
+window.supabaseClient = supabaseClient;
+window.loadUserFromCloud = loadUserFromCloud;
+window.hashPassword = hashPassword;
+
+console.log('✅ auth.js загружен, все функции экспортированы');
