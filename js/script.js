@@ -55,7 +55,7 @@ async function updateUIForUser() {
     if (currentUser) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
-        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''}`;
+        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
         userDisplay.style.display = 'inline';
         statsPanel.classList.remove('hidden');
         document.getElementById('userGamesPlayed').textContent = currentUser.gamesPlayed || 0;
@@ -84,6 +84,17 @@ async function updateUIForUser() {
     }
 }
 
+function updateBalanceUI() {
+    const balanceSpan = document.getElementById('balanceAmount');
+    const userDisplay = document.getElementById('userDisplay');
+    if (balanceSpan && currentUser) {
+        balanceSpan.textContent = currentUser.casinoBalance || 5000;
+    }
+    if (userDisplay && currentUser) {
+        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
+    }
+}
+
 async function updateUserStats(game, score) {
     if (!currentUser) return;
     const stats = {};
@@ -109,22 +120,144 @@ function updateAllHighScores() {
 }
 
 // ========== АДМИН-ПАНЕЛЬ (ОБЛАЧНАЯ) ==========
+async function updateCasinoUserSelect() {
+    const select = document.getElementById('adminUserSelect');
+    if (!select) return;
+    
+    try {
+        const users = await getAllUsersCloud();
+        select.innerHTML = '<option value="">Выберите пользователя</option>';
+        for (const user of users) {
+            select.innerHTML += `<option value="${user.username}">${user.username} ${user.isAdmin ? '👑' : '👤'} | 💰 ${user.casinoBalance || 5000}</option>`;
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки пользователей:', e);
+        select.innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+async function updateCasinoStats() {
+    try {
+        const users = await getAllUsersCloud();
+        let totalBalance = 0;
+        let playerCount = users.length;
+        const topPlayers = [];
+        
+        for (const user of users) {
+            const balance = user.casinoBalance || 5000;
+            totalBalance += balance;
+            topPlayers.push({ username: user.username, balance, isAdmin: user.isAdmin });
+        }
+        
+        const avgBalance = playerCount > 0 ? Math.floor(totalBalance / playerCount) : 0;
+        
+        const totalPlayersSpan = document.getElementById('casinoTotalPlayers');
+        const totalBalanceSpan = document.getElementById('casinoTotalBalance');
+        const avgBalanceSpan = document.getElementById('casinoAvgBalance');
+        const topPlayersDiv = document.getElementById('casinoTopPlayers');
+        
+        if (totalPlayersSpan) totalPlayersSpan.textContent = playerCount;
+        if (totalBalanceSpan) totalBalanceSpan.textContent = totalBalance;
+        if (avgBalanceSpan) avgBalanceSpan.textContent = avgBalance;
+        
+        if (topPlayersDiv) {
+            const sorted = topPlayers.sort((a, b) => b.balance - a.balance).slice(0, 10);
+            topPlayersDiv.innerHTML = sorted.map((p, idx) => `
+                <div style="padding: 8px; border-bottom: 1px solid #05d9e830; display: flex; justify-content: space-between;">
+                    <span>${idx + 1}. ${p.username} ${p.isAdmin ? '👑' : ''}</span>
+                    <span style="color: #ffd700;">💰 ${p.balance}</span>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Ошибка обновления статистики:', e);
+    }
+}
+
+async function addCasinoBalanceToUser() {
+    const select = document.getElementById('adminUserSelect');
+    const amountInput = document.getElementById('adminBalanceAmount');
+    const username = select ? select.value : '';
+    const amount = amountInput ? parseInt(amountInput.value) : 0;
+    
+    if (!username) {
+        showToast('❌ Выберите пользователя!', '#ff2a6d');
+        return;
+    }
+    if (isNaN(amount) || amount <= 0) {
+        showToast('❌ Введите корректную сумму (больше 0)!', '#ff2a6d');
+        return;
+    }
+    
+    try {
+        const success = await addCasinoBalanceCloud(username, amount);
+        if (success) {
+            showToast(`💰 ${username} получил ${amount} очков казино!`, '#ffd700');
+            
+            if (currentUser && currentUser.username === username) {
+                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + amount;
+                updateBalanceUI();
+                updateUIForUser();
+            }
+            
+            await updateCasinoUserSelect();
+            await updateCasinoStats();
+            await loadAdminUsersList();
+        } else {
+            showToast('❌ Ошибка начисления!', '#ff2a6d');
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+        showToast('❌ Ошибка начисления!', '#ff2a6d');
+    }
+}
+
+window.quickAddBalanceCloud = async function(username) {
+    try {
+        const success = await addCasinoBalanceCloud(username, 100);
+        if (success) {
+            showToast(`💰 ${username} +100 очков!`, '#ffd700');
+            
+            if (currentUser && currentUser.username === username) {
+                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + 100;
+                updateBalanceUI();
+                updateUIForUser();
+            }
+            
+            await loadAdminUsersList();
+            await updateCasinoUserSelect();
+            await updateCasinoStats();
+        } else {
+            showToast('❌ Ошибка начисления!', '#ff2a6d');
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+        showToast('❌ Ошибка начисления!', '#ff2a6d');
+    }
+};
+
 async function loadAdminUsersList() {
-    const users = await getAllUsersCloud();
     const container = document.getElementById('usersListContainer');
     if (!container) return;
-    container.innerHTML = '';
-    for (const user of users) {
-        const div = document.createElement('div');
-        div.style.cssText = 'padding: 10px; border-bottom: 1px solid #05d9e8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;';
-        div.innerHTML = `
-            <span><b>${user.username}</b> ${user.isAdmin ? '👑' : ''} | Игр: ${user.gamesPlayed || 0} | 🎰 Баланс: ${user.casinoBalance || 5000}</span>
-            <div style="display: flex; gap: 8px;">
-                ${!user.isAdmin ? `<button class="tiny-btn" onclick="window.deleteUserCloud('${user.username}')">🗑 Удалить</button>` : ''}
-                <button class="tiny-btn" onclick="window.quickAddBalanceCloud('${user.username}')">💰 +100</button>
-            </div>
-        `;
-        container.appendChild(div);
+    
+    try {
+        const users = await getAllUsersCloud();
+        container.innerHTML = '';
+        for (const user of users) {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 10px; border-bottom: 1px solid #05d9e8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;';
+            div.innerHTML = `
+                <span><b>${user.username}</b> ${user.isAdmin ? '👑' : ''} | Игр: ${user.gamesPlayed || 0} | 🎰 Баланс: ${user.casinoBalance || 5000}</span>
+                <div style="display: flex; gap: 8px;">
+                    ${!user.isAdmin ? `<button class="tiny-btn" onclick="window.deleteUserCloud('${user.username}')">🗑 Удалить</button>` : ''}
+                    <button class="tiny-btn" onclick="window.quickAddBalanceCloud('${user.username}')">💰 +100</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки пользователей:', e);
+        container.innerHTML = '<p style="color: #ff2a6d;">Ошибка загрузки пользователей</p>';
     }
 }
 
@@ -133,17 +266,22 @@ window.deleteUserCloud = async function(username) {
         try {
             await supabaseClient.request(`/users?username=eq.${encodeURIComponent(username)}`, { method: 'DELETE' });
             showToast(`Пользователь ${username} удалён`, '#ff2a6d');
+            
+            if (currentUser && currentUser.username === username) {
+                logoutCloud();
+                currentUser = null;
+                updateUIForUser();
+                updateBalanceUI();
+            }
+            
             await loadAdminUsersList();
+            await updateCasinoUserSelect();
+            await updateCasinoStats();
         } catch (e) {
+            console.error('Ошибка удаления:', e);
             showToast('Ошибка удаления', '#ff2a6d');
         }
     }
-};
-
-window.quickAddBalanceCloud = async function(username) {
-    await addCasinoBalanceCloud(username, 100);
-    showToast(`💰 ${username} +100 очков!`, '#ffd700');
-    await loadAdminUsersList();
 };
 
 // ========== ГЕНЕРАТОР ФАКТОВ ==========
@@ -169,12 +307,64 @@ function saveFacts() {
     localStorage.setItem('neon_facts', JSON.stringify(factsArray));
 }
 
+window.deleteFact = function(idx) {
+    factsArray.splice(idx, 1);
+    saveFacts();
+    const adminContentTab = document.getElementById('adminContentTab');
+    if (adminContentTab) adminContentTab.click();
+    showToast('Факт удалён', '#05d9e8');
+};
+
 // ========== МОДАЛКИ АВТОРИЗАЦИИ ==========
 let isLoginMode = true;
 const authModal = document.getElementById('authModal');
 
 function openAuthModal() {
     authModal.classList.remove('hidden');
+}
+
+// ========== СЕНСОРНОЕ УПРАВЛЕНИЕ ==========
+function setupSnakeTouchControls() {
+    const buttons = document.querySelectorAll('.snake-controls .control-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!snakeGame || !snakeGame.gameRunning) return;
+            
+            const dir = btn.dataset.dir;
+            switch(dir) {
+                case 'up': snakeGame.setDirection(0, -1); break;
+                case 'down': snakeGame.setDirection(0, 1); break;
+                case 'left': snakeGame.setDirection(-1, 0); break;
+                case 'right': snakeGame.setDirection(1, 0); break;
+            }
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = ''; }, 100);
+        });
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); btn.click(); });
+    });
+}
+
+function setupTetrisTouchControls() {
+    const buttons = document.querySelectorAll('.tetris-controls .tetris-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!tetrisGame || !tetrisGame.gameRunning) return;
+            
+            const action = btn.dataset.action;
+            switch(action) {
+                case 'left': tetrisGame.moveLeft(); break;
+                case 'right': tetrisGame.moveRight(); break;
+                case 'rotate': tetrisGame.rotate(); break;
+                case 'down': tetrisGame.update(); break;
+                case 'harddrop': tetrisGame.hardDrop(); break;
+            }
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = ''; }, 100);
+        });
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); btn.click(); });
+    });
 }
 
 // ========== ИГРА 1: ЗМЕЙКА ==========
@@ -533,35 +723,10 @@ class NeonTetris {
         showToast(`💀 Тетрис окончен! Счёт: ${this.score}`, '#ff2a6d');
     }
     
-    moveLeft() {
-        if (!this.gameRunning) return;
-        this.currentX--;
-        if (this.collision()) this.currentX++;
-        this.draw();
-    }
-    
-    moveRight() {
-        if (!this.gameRunning) return;
-        this.currentX++;
-        if (this.collision()) this.currentX--;
-        this.draw();
-    }
-    
-    rotate() {
-        if (!this.gameRunning) return;
-        const rotated = this.currentPiece.shape[0].map((_, idx) => this.currentPiece.shape.map(row => row[idx]).reverse());
-        const originalShape = this.currentPiece.shape;
-        this.currentPiece.shape = rotated;
-        if (this.collision()) this.currentPiece.shape = originalShape;
-        this.draw();
-    }
-    
-    hardDrop() {
-        if (!this.gameRunning) return;
-        while (!this.collision()) this.currentY++;
-        this.currentY--;
-        this.mergePiece();
-    }
+    moveLeft() { if (!this.gameRunning) return; this.currentX--; if (this.collision()) this.currentX++; this.draw(); }
+    moveRight() { if (!this.gameRunning) return; this.currentX++; if (this.collision()) this.currentX--; this.draw(); }
+    rotate() { if (!this.gameRunning) return; const rotated = this.currentPiece.shape[0].map((_, idx) => this.currentPiece.shape.map(row => row[idx]).reverse()); const originalShape = this.currentPiece.shape; this.currentPiece.shape = rotated; if (this.collision()) this.currentPiece.shape = originalShape; this.draw(); }
+    hardDrop() { if (!this.gameRunning) return; while (!this.collision()) this.currentY++; this.currentY--; this.mergePiece(); }
     
     setupKeyboardControls() {
         document.addEventListener('keydown', (e) => {
@@ -577,7 +742,7 @@ class NeonTetris {
     }
 }
 
-// ========== ИГРА 3: ДИНОЗАВРИК ==========
+// ========== ИГРА 3: ДИНОЗАВРИК (сокращён) ==========
 class NeonDino {
     constructor(canvasId, scoreId, highScoreId) {
         this.canvas = document.getElementById(canvasId);
@@ -585,7 +750,6 @@ class NeonDino {
         this.ctx = this.canvas.getContext('2d');
         this.scoreSpan = document.getElementById(scoreId);
         this.highScoreSpan = document.getElementById(highScoreId);
-        
         this.dino = { x: 50, y: 150, width: 20, height: 20, jumping: false, velocity: 0, gravity: 0.8, jumpPower: -12 };
         this.obstacles = [];
         this.score = 0;
@@ -593,17 +757,13 @@ class NeonDino {
         this.gameLoop = null;
         this.obstacleTimer = null;
         this.groundY = 170;
-        
         this.loadHighScore();
         this.setupControls();
     }
     
     loadHighScore() {
-        if (currentUser) {
-            this.highScore = currentUser.dinoScore || 0;
-        } else {
-            this.highScore = parseInt(localStorage.getItem('neon_dino_highscore')) || 0;
-        }
+        if (currentUser) this.highScore = currentUser.dinoScore || 0;
+        else this.highScore = parseInt(localStorage.getItem('neon_dino_highscore')) || 0;
         if (this.highScoreSpan) this.highScoreSpan.textContent = this.highScore;
     }
     
@@ -611,48 +771,23 @@ class NeonDino {
         if (this.score > this.highScore) {
             this.highScore = this.score;
             if (this.highScoreSpan) this.highScoreSpan.textContent = this.highScore;
-            if (currentUser) {
-                updateUserStats('dino', this.highScore);
-            } else {
-                localStorage.setItem('neon_dino_highscore', this.highScore);
-            }
+            if (currentUser) updateUserStats('dino', this.highScore);
+            else localStorage.setItem('neon_dino_highscore', this.highScore);
         }
     }
     
-    jump() {
-        if (!this.gameRunning) return;
-        if (!this.dino.jumping && this.dino.y >= this.groundY - this.dino.height) {
-            this.dino.velocity = this.dino.jumpPower;
-            this.dino.jumping = true;
-        }
-    }
+    jump() { if (!this.gameRunning) return; if (!this.dino.jumping && this.dino.y >= this.groundY - this.dino.height) { this.dino.velocity = this.dino.jumpPower; this.dino.jumping = true; } }
     
     update() {
         if (!this.gameRunning) return;
-        
         this.dino.velocity += this.dino.gravity;
         this.dino.y += this.dino.velocity;
-        if (this.dino.y >= this.groundY - this.dino.height) {
-            this.dino.y = this.groundY - this.dino.height;
-            this.dino.jumping = false;
-        }
-        
+        if (this.dino.y >= this.groundY - this.dino.height) { this.dino.y = this.groundY - this.dino.height; this.dino.jumping = false; }
         for (let i = 0; i < this.obstacles.length; i++) {
             this.obstacles[i].x -= 5;
-            if (this.obstacles[i].x + this.obstacles[i].width < 0) {
-                this.obstacles.splice(i, 1);
-                this.score++;
-                if (this.scoreSpan) this.scoreSpan.textContent = this.score;
-                this.saveHighScore();
-                i--;
-            } else if (this.dino.x < this.obstacles[i].x + this.obstacles[i].width &&
-                       this.dino.x + this.dino.width > this.obstacles[i].x &&
-                       this.dino.y < this.obstacles[i].y + this.obstacles[i].height &&
-                       this.dino.y + this.dino.height > this.obstacles[i].y) {
-                this.gameOver();
-            }
+            if (this.obstacles[i].x + this.obstacles[i].width < 0) { this.obstacles.splice(i, 1); this.score++; if (this.scoreSpan) this.scoreSpan.textContent = this.score; this.saveHighScore(); i--; }
+            else if (this.dino.x < this.obstacles[i].x + this.obstacles[i].width && this.dino.x + this.dino.width > this.obstacles[i].x && this.dino.y < this.obstacles[i].y + this.obstacles[i].height && this.dino.y + this.dino.height > this.obstacles[i].y) this.gameOver();
         }
-        
         this.draw();
     }
     
@@ -660,20 +795,14 @@ class NeonDino {
         if (!this.ctx) return;
         this.ctx.fillStyle = '#010103';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
         this.ctx.fillStyle = '#05d9e8';
         this.ctx.fillRect(0, this.groundY, this.canvas.width, 3);
-        
         this.ctx.fillStyle = '#ff2a6d';
         this.ctx.fillRect(this.dino.x, this.dino.y, this.dino.width, this.dino.height);
         this.ctx.fillStyle = '#fff';
         this.ctx.fillRect(this.dino.x + 15, this.dino.y + 5, 3, 3);
-        
         this.ctx.fillStyle = '#0f0';
-        for (let obs of this.obstacles) {
-            this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        }
-        
+        for (let obs of this.obstacles) this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         this.ctx.fillStyle = '#05d9e8';
         this.ctx.font = '20px monospace';
         this.ctx.fillText(`Score: ${this.score}`, this.canvas.width - 120, 30);
@@ -690,40 +819,16 @@ class NeonDino {
         if (this.scoreSpan) this.scoreSpan.textContent = '0';
         this.gameRunning = true;
         this.gameLoop = setInterval(() => this.update(), 20);
-        this.obstacleTimer = setInterval(() => {
-            if (this.gameRunning) {
-                this.obstacles.push({
-                    x: this.canvas.width,
-                    y: this.groundY - 20,
-                    width: 15,
-                    height: 20
-                });
-            }
-        }, 2000);
+        this.obstacleTimer = setInterval(() => { if (this.gameRunning) this.obstacles.push({ x: this.canvas.width, y: this.groundY - 20, width: 15, height: 20 }); }, 2000);
         this.draw();
         showToast('🦖 Динозаврик побежал!', '#05d9e8');
     }
     
-    gameOver() {
-        clearInterval(this.gameLoop);
-        clearInterval(this.obstacleTimer);
-        this.gameRunning = false;
-        this.saveHighScore();
-        showToast(`💀 Игра окончена! Счёт: ${this.score}`, '#ff2a6d');
-    }
-    
-    setupControls() {
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp' || e.key === ' ') {
-                e.preventDefault();
-                this.jump();
-            }
-        });
-        this.canvas.addEventListener('click', () => this.jump());
-    }
+    gameOver() { clearInterval(this.gameLoop); clearInterval(this.obstacleTimer); this.gameRunning = false; this.saveHighScore(); showToast(`💀 Игра окончена! Счёт: ${this.score}`, '#ff2a6d'); }
+    setupControls() { document.addEventListener('keydown', (e) => { if (e.key === 'ArrowUp' || e.key === ' ') { e.preventDefault(); this.jump(); } }); this.canvas.addEventListener('click', () => this.jump()); }
 }
 
-// ========== ИГРА 4: ФЛЭППИ БЁРД ==========
+// ========== ИГРА 4: ФЛЭППИ БЁРД (сокращён) ==========
 class NeonFlappy {
     constructor(canvasId, scoreId, highScoreId) {
         this.canvas = document.getElementById(canvasId);
@@ -731,7 +836,6 @@ class NeonFlappy {
         this.ctx = this.canvas.getContext('2d');
         this.scoreSpan = document.getElementById(scoreId);
         this.highScoreSpan = document.getElementById(highScoreId);
-        
         this.bird = { x: 50, y: 250, velocity: 0, gravity: 0.2, jumpPower: -5, size: 15 };
         this.pipes = [];
         this.score = 0;
@@ -740,17 +844,13 @@ class NeonFlappy {
         this.pipeTimer = null;
         this.pipeGap = 120;
         this.pipeWidth = 50;
-        
         this.loadHighScore();
         this.setupControls();
     }
     
     loadHighScore() {
-        if (currentUser) {
-            this.highScore = currentUser.flappyScore || 0;
-        } else {
-            this.highScore = parseInt(localStorage.getItem('neon_flappy_highscore')) || 0;
-        }
+        if (currentUser) this.highScore = currentUser.flappyScore || 0;
+        else this.highScore = parseInt(localStorage.getItem('neon_flappy_highscore')) || 0;
         if (this.highScoreSpan) this.highScoreSpan.textContent = this.highScore;
     }
     
@@ -758,48 +858,26 @@ class NeonFlappy {
         if (this.score > this.highScore) {
             this.highScore = this.score;
             if (this.highScoreSpan) this.highScoreSpan.textContent = this.highScore;
-            if (currentUser) {
-                updateUserStats('flappy', this.highScore);
-            } else {
-                localStorage.setItem('neon_flappy_highscore', this.highScore);
-            }
+            if (currentUser) updateUserStats('flappy', this.highScore);
+            else localStorage.setItem('neon_flappy_highscore', this.highScore);
         }
     }
     
-    jump() {
-        if (!this.gameRunning) return;
-        this.bird.velocity = this.bird.jumpPower;
-    }
+    jump() { if (!this.gameRunning) return; this.bird.velocity = this.bird.jumpPower; }
     
     update() {
         if (!this.gameRunning) return;
-        
         this.bird.velocity += this.bird.gravity;
         this.bird.y += this.bird.velocity;
-        
-        if (this.bird.y + this.bird.size > this.canvas.height || this.bird.y < 0) {
-            this.gameOver();
-            return;
-        }
-        
+        if (this.bird.y + this.bird.size > this.canvas.height || this.bird.y < 0) { this.gameOver(); return; }
         for (let i = 0; i < this.pipes.length; i++) {
             this.pipes[i].x -= 2;
-            if (this.pipes[i].x + this.pipeWidth < 0) {
-                this.pipes.splice(i, 1);
-                i--;
-            } else if (this.bird.x + this.bird.size > this.pipes[i].x && this.bird.x < this.pipes[i].x + this.pipeWidth) {
-                if (this.bird.y < this.pipes[i].topHeight || this.bird.y + this.bird.size > this.pipes[i].topHeight + this.pipeGap) {
-                    this.gameOver();
-                    return;
-                } else if (!this.pipes[i].passed) {
-                    this.pipes[i].passed = true;
-                    this.score++;
-                    if (this.scoreSpan) this.scoreSpan.textContent = this.score;
-                    this.saveHighScore();
-                }
+            if (this.pipes[i].x + this.pipeWidth < 0) { this.pipes.splice(i, 1); i--; }
+            else if (this.bird.x + this.bird.size > this.pipes[i].x && this.bird.x < this.pipes[i].x + this.pipeWidth) {
+                if (this.bird.y < this.pipes[i].topHeight || this.bird.y + this.bird.size > this.pipes[i].topHeight + this.pipeGap) { this.gameOver(); return; }
+                else if (!this.pipes[i].passed) { this.pipes[i].passed = true; this.score++; if (this.scoreSpan) this.scoreSpan.textContent = this.score; this.saveHighScore(); }
             }
         }
-        
         this.draw();
     }
     
@@ -807,16 +885,13 @@ class NeonFlappy {
         if (!this.ctx) return;
         this.ctx.fillStyle = '#010103';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
         this.ctx.fillStyle = '#ff2a6d';
         this.ctx.fillRect(this.bird.x, this.bird.y, this.bird.size, this.bird.size);
-        
         this.ctx.fillStyle = '#05d9e8';
         for (let pipe of this.pipes) {
             this.ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.topHeight);
             this.ctx.fillRect(pipe.x, pipe.topHeight + this.pipeGap, this.pipeWidth, this.canvas.height - pipe.topHeight - this.pipeGap);
         }
-        
         this.ctx.fillStyle = '#0f0';
         this.ctx.font = '20px monospace';
         this.ctx.fillText(`Score: ${this.score}`, 10, 30);
@@ -832,37 +907,13 @@ class NeonFlappy {
         if (this.scoreSpan) this.scoreSpan.textContent = '0';
         this.gameRunning = true;
         this.gameLoop = setInterval(() => this.update(), 20);
-        this.pipeTimer = setInterval(() => {
-            if (this.gameRunning) {
-                const topHeight = Math.random() * (this.canvas.height - this.pipeGap - 100) + 50;
-                this.pipes.push({
-                    x: this.canvas.width,
-                    topHeight: topHeight,
-                    passed: false
-                });
-            }
-        }, 2000);
+        this.pipeTimer = setInterval(() => { if (this.gameRunning) this.pipes.push({ x: this.canvas.width, topHeight: Math.random() * (this.canvas.height - this.pipeGap - 100) + 50, passed: false }); }, 2000);
         this.draw();
         showToast('🐦 Флэппи бёрд началась!', '#05d9e8');
     }
     
-    gameOver() {
-        clearInterval(this.gameLoop);
-        clearInterval(this.pipeTimer);
-        this.gameRunning = false;
-        this.saveHighScore();
-        showToast(`💀 Игра окончена! Счёт: ${this.score}`, '#ff2a6d');
-    }
-    
-    setupControls() {
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp' || e.key === ' ') {
-                e.preventDefault();
-                this.jump();
-            }
-        });
-        this.canvas.addEventListener('click', () => this.jump());
-    }
+    gameOver() { clearInterval(this.gameLoop); clearInterval(this.pipeTimer); this.gameRunning = false; this.saveHighScore(); showToast(`💀 Игра окончена! Счёт: ${this.score}`, '#ff2a6d'); }
+    setupControls() { document.addEventListener('keydown', (e) => { if (e.key === 'ArrowUp' || e.key === ' ') { e.preventDefault(); this.jump(); } }); this.canvas.addEventListener('click', () => this.jump()); }
 }
 
 // ========== ИГРА 5: МЕМОРИ ==========
@@ -871,7 +922,6 @@ class NeonMemory {
         this.board = document.getElementById(boardId);
         this.pairsSpan = document.getElementById(pairsId);
         this.bestTimeSpan = document.getElementById(bestTimeId);
-        
         this.icons = ['🐍', '🧩', '🦖', '🐦', '🎮', '🎵', '🌧', '👑'];
         this.cards = [];
         this.flippedCards = [];
@@ -880,47 +930,29 @@ class NeonMemory {
         this.startTime = null;
         this.timer = null;
         this.gameRunning = false;
-        
         this.loadBestTime();
     }
     
     loadBestTime() {
-        if (currentUser) {
-            this.bestTime = currentUser.memoryScore || 0;
-        } else {
-            this.bestTime = parseInt(localStorage.getItem('neon_memory_besttime')) || 0;
-        }
-        if (this.bestTimeSpan && this.bestTime > 0) {
-            this.bestTimeSpan.textContent = `${this.bestTime} сек`;
-        }
+        if (currentUser) this.bestTime = currentUser.memoryScore || 0;
+        else this.bestTime = parseInt(localStorage.getItem('neon_memory_besttime')) || 0;
+        if (this.bestTimeSpan && this.bestTime > 0) this.bestTimeSpan.textContent = `${this.bestTime} сек`;
     }
     
     saveBestTime() {
         if (this.endTime && (this.bestTime === 0 || this.endTime < this.bestTime)) {
             this.bestTime = this.endTime;
             if (this.bestTimeSpan) this.bestTimeSpan.textContent = `${this.bestTime} сек`;
-            if (currentUser) {
-                updateUserStats('memory', this.bestTime);
-            } else {
-                localStorage.setItem('neon_memory_besttime', this.bestTime);
-            }
+            if (currentUser) updateUserStats('memory', this.bestTime);
+            else localStorage.setItem('neon_memory_besttime', this.bestTime);
         }
     }
     
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    }
+    shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
     
     initGame() {
         let cards = [];
-        for (let icon of this.icons) {
-            cards.push({ icon: icon, matched: false, flipped: false });
-            cards.push({ icon: icon, matched: false, flipped: false });
-        }
+        for (let icon of this.icons) { cards.push({ icon: icon, matched: false, flipped: false }); cards.push({ icon: icon, matched: false, flipped: false }); }
         this.cards = this.shuffleArray(cards);
         this.matchedPairs = 0;
         this.flippedCards = [];
@@ -944,28 +976,17 @@ class NeonMemory {
     }
     
     flipCard(index) {
-        if (this.locked) return;
-        if (this.cards[index].matched) return;
-        if (this.cards[index].flipped) return;
-        if (this.flippedCards.length === 2) return;
-        
-        if (!this.gameRunning) {
-            this.startGame();
-        }
-        
+        if (this.locked || this.cards[index].matched || this.cards[index].flipped || this.flippedCards.length === 2) return;
+        if (!this.gameRunning) this.startGame();
         this.cards[index].flipped = true;
         this.flippedCards.push(index);
         this.render();
-        
-        if (this.flippedCards.length === 2) {
-            this.checkMatch();
-        }
+        if (this.flippedCards.length === 2) this.checkMatch();
     }
     
     checkMatch() {
         const card1 = this.cards[this.flippedCards[0]];
         const card2 = this.cards[this.flippedCards[1]];
-        
         if (card1.icon === card2.icon) {
             card1.matched = true;
             card2.matched = true;
@@ -973,10 +994,7 @@ class NeonMemory {
             if (this.pairsSpan) this.pairsSpan.textContent = this.matchedPairs;
             this.flippedCards = [];
             this.render();
-            
-            if (this.matchedPairs === this.icons.length) {
-                this.endGame();
-            }
+            if (this.matchedPairs === this.icons.length) this.endGame();
         } else {
             this.locked = true;
             setTimeout(() => {
@@ -993,40 +1011,18 @@ class NeonMemory {
         this.initGame();
         this.gameRunning = true;
         this.startTime = Date.now();
-        this.timer = setInterval(() => {
-            if (this.gameRunning) {
-                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-                const timeDisplay = document.getElementById('memoryCurrentTime');
-                if (timeDisplay) timeDisplay.textContent = `${elapsed} сек`;
-            }
-        }, 1000);
+        this.timer = setInterval(() => { if (this.gameRunning) { const elapsed = Math.floor((Date.now() - this.startTime) / 1000); const timeDisplay = document.getElementById('memoryCurrentTime'); if (timeDisplay) timeDisplay.textContent = `${elapsed} сек`; } }, 1000);
         showToast('🧠 Мемори началась! Найди все пары', '#05d9e8');
     }
     
-    endGame() {
-        clearInterval(this.timer);
-        this.gameRunning = false;
-        this.endTime = Math.floor((Date.now() - this.startTime) / 1000);
-        this.saveBestTime();
-        showToast(`🎉 Победа! Время: ${this.endTime} секунд`, '#0f0');
-    }
-    
-    start() {
-        this.initGame();
-        this.gameRunning = false;
-        this.startTime = null;
-        if (this.timer) clearInterval(this.timer);
-        showToast('🧠 Нажми на любую карточку, чтобы начать', '#05d9e8');
-    }
+    endGame() { clearInterval(this.timer); this.gameRunning = false; this.endTime = Math.floor((Date.now() - this.startTime) / 1000); this.saveBestTime(); showToast(`🎉 Победа! Время: ${this.endTime} секунд`, '#0f0'); }
+    start() { this.initGame(); this.gameRunning = false; this.startTime = null; if (this.timer) clearInterval(this.timer); showToast('🧠 Нажми на любую карточку, чтобы начать', '#05d9e8'); }
 }
 
-// ========== ИНИЦИАЛИЗАЦИЯ ВСЕХ ИГР ==========
+// ========== ИНИЦИАЛИЗАЦИЯ ИГР И ЭФФЕКТОВ ==========
 let snakeGame, tetrisGame, dinoGame, flappyGame, memoryGame;
-
-// ========== ТЕРМЕНВОКС ==========
-let audioContext = null;
-let oscillator = null;
-let gainNode = null;
+let audioContext = null, oscillator = null, gainNode = null;
+let matrixInterval = null, matrixActive = false;
 
 function initTheremin() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1038,10 +1034,6 @@ function initTheremin() {
     gainNode.gain.value = 0;
     oscillator.start();
 }
-
-// ========== MATRIX RAIN ==========
-let matrixInterval = null;
-let matrixActive = false;
 
 function startMatrixRain() {
     const matrixCanvas = document.getElementById('matrixCanvas');
@@ -1070,11 +1062,7 @@ function startMatrixRain() {
     }, 35);
 }
 
-function stopMatrixRain() {
-    if (matrixInterval) clearInterval(matrixInterval);
-    const matrixCanvas = document.getElementById('matrixCanvas');
-    if (matrixCanvas) matrixCanvas.classList.add('hidden');
-}
+function stopMatrixRain() { if (matrixInterval) clearInterval(matrixInterval); const matrixCanvas = document.getElementById('matrixCanvas'); if (matrixCanvas) matrixCanvas.classList.add('hidden'); }
 
 // ========== ЗАПУСК ВСЕГО ==========
 window.addEventListener('load', async () => {
@@ -1102,66 +1090,47 @@ window.addEventListener('load', async () => {
         btn.onclick = () => switchGame(btn.dataset.game);
     });
     
+    // Сенсорное управление
+    setTimeout(() => { setupSnakeTouchControls(); setupTetrisTouchControls(); }, 500);
+    
     // Восстановление сессии
-    const user = await restoreSession();
-    if (user) {
-        currentUser = user;
-        updateUIForUser();
-        updateAllHighScores();
+    if (typeof restoreSession !== 'undefined') {
+        const user = await restoreSession();
+        if (user) { currentUser = user; updateUIForUser(); updateAllHighScores(); }
     }
     
     // Авторизация
     document.getElementById('loginBtn').onclick = openAuthModal;
-    document.getElementById('logoutBtn').onclick = () => {
-        logoutCloud();
-        currentUser = null;
-        updateUIForUser();
-        showToast('Вы вышли из аккаунта', '#05d9e8');
-    };
+    document.getElementById('logoutBtn').onclick = () => { if (typeof logoutCloud === 'function') logoutCloud(); currentUser = null; updateUIForUser(); showToast('Вы вышли из аккаунта', '#05d9e8'); };
     document.getElementById('closeAuthModal').onclick = () => authModal.classList.add('hidden');
     document.getElementById('switchAuthMode').onclick = (e) => {
-        e.preventDefault();
-        isLoginMode = !isLoginMode;
+        e.preventDefault(); isLoginMode = !isLoginMode;
         const title = document.getElementById('authModalTitle');
         const submitBtn = document.getElementById('authSubmitBtn');
-        if (isLoginMode) {
-            title.textContent = '🔐 Авторизация';
-            submitBtn.textContent = 'Войти';
-        } else {
-            title.textContent = '📝 Регистрация';
-            submitBtn.textContent = 'Зарегистрироваться';
-        }
+        if (isLoginMode) { if(title) title.textContent = '🔐 Авторизация'; if(submitBtn) submitBtn.textContent = 'Войти'; }
+        else { if(title) title.textContent = '📝 Регистрация'; if(submitBtn) submitBtn.textContent = 'Зарегистрироваться'; }
     };
     document.getElementById('authSubmitBtn').onclick = async () => {
         const username = document.getElementById('authUsername').value.trim();
         const password = document.getElementById('authPassword').value.trim();
-        if (!username || !password) {
-            document.getElementById('authError').textContent = 'Заполните все поля';
-            return;
-        }
+        const authError = document.getElementById('authError');
+        if (!username || !password) { if(authError) authError.textContent = 'Заполните все поля'; return; }
         
-        if (isLoginMode) {
+        if (isLoginMode && typeof loginUserCloud !== 'undefined') {
             const res = await loginUserCloud(username, password);
-            if (res.success) {
-                currentUser = res.user;
-                authModal.classList.add('hidden');
-                updateUIForUser();
-                updateAllHighScores();
-                showToast(`Добро пожаловать, ${username}!`, '#05d9e8');
-            } else {
-                document.getElementById('authError').textContent = res.error;
-            }
-        } else {
+            if (res.success) { currentUser = res.user; authModal.classList.add('hidden'); updateUIForUser(); updateAllHighScores(); showToast(`Добро пожаловать, ${username}!`, '#05d9e8'); }
+            else if(authError) authError.textContent = res.error;
+        } else if (typeof registerUserCloud !== 'undefined') {
             const res = await registerUserCloud(username, password);
             if (res.success) {
                 showToast('Регистрация успешна! Теперь войдите.', '#0f0');
                 isLoginMode = true;
-                document.getElementById('authModalTitle').textContent = '🔐 Авторизация';
-                document.getElementById('authSubmitBtn').textContent = 'Войти';
-                document.getElementById('authError').textContent = '';
-            } else {
-                document.getElementById('authError').textContent = res.error;
-            }
+                const title = document.getElementById('authModalTitle');
+                const submitBtn = document.getElementById('authSubmitBtn');
+                if(title) title.textContent = '🔐 Авторизация';
+                if(submitBtn) submitBtn.textContent = 'Войти';
+                if(authError) authError.textContent = '';
+            } else if(authError) authError.textContent = res.error;
         }
     };
     
@@ -1169,344 +1138,104 @@ window.addEventListener('load', async () => {
     const thereminZone = document.getElementById('thereminZone');
     const freqSpan = document.getElementById('freqValue');
     if (thereminZone) {
-        thereminZone.addEventListener('mouseenter', () => {
-            if (!audioContext) initTheremin();
-            if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-            if (gainNode) gainNode.gain.value = 0.2;
-        });
+        thereminZone.addEventListener('mouseenter', () => { if (!audioContext) initTheremin(); if (audioContext && audioContext.state === 'suspended') audioContext.resume(); if (gainNode) gainNode.gain.value = 0.2; });
         thereminZone.addEventListener('mouseleave', () => { if (gainNode) gainNode.gain.value = 0; });
-        thereminZone.addEventListener('mousemove', (e) => {
-            if (!oscillator) return;
-            const rect = thereminZone.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = (e.clientY - rect.top) / rect.height;
-            const freq = 200 + x * 800 + y * 400;
-            oscillator.frequency.value = Math.min(1200, Math.max(200, freq));
-            if (freqSpan) freqSpan.textContent = Math.floor(oscillator.frequency.value);
-        });
+        thereminZone.addEventListener('mousemove', (e) => { if (!oscillator) return; const rect = thereminZone.getBoundingClientRect(); const x = (e.clientX - rect.left) / rect.width; const y = (e.clientY - rect.top) / rect.height; const freq = 200 + x * 800 + y * 400; oscillator.frequency.value = Math.min(1200, Math.max(200, freq)); if (freqSpan) freqSpan.textContent = Math.floor(oscillator.frequency.value); });
     }
     
     // Matrix Rain
-    document.getElementById('toggleMatrixBtn').onclick = () => {
-        if (matrixActive) {
-            stopMatrixRain();
-            document.getElementById('toggleMatrixBtn').textContent = '🌧 Включить Matrix Rain';
-        } else {
-            startMatrixRain();
-            document.getElementById('toggleMatrixBtn').textContent = '🌧 Выключить Matrix Rain';
-        }
-        matrixActive = !matrixActive;
-    };
+    document.getElementById('toggleMatrixBtn').onclick = () => { if (matrixActive) { stopMatrixRain(); document.getElementById('toggleMatrixBtn').textContent = '🌧 Включить Matrix Rain'; } else { startMatrixRain(); document.getElementById('toggleMatrixBtn').textContent = '🌧 Выключить Matrix Rain'; } matrixActive = !matrixActive; };
     
-    // Факты
-    document.getElementById('newFactBtn').onclick = () => {
-        const randomIndex = Math.floor(Math.random() * factsArray.length);
-        document.getElementById('randomFact').textContent = factsArray[randomIndex];
-        incrementCounter();
-    };
+    // Факты и счётчик
+    document.getElementById('newFactBtn').onclick = () => { const randomIndex = Math.floor(Math.random() * factsArray.length); document.getElementById('randomFact').textContent = factsArray[randomIndex]; incrementCounter(); };
     document.getElementById('resetCounterBtn').onclick = () => { clickCounter = 0; updateCounterUI(); showToast('Счётчик обнулён', '#ff2a6d'); };
-    document.getElementById('magicGlowBtn').onclick = () => {
-        incrementCounter();
-        document.body.style.background = "radial-gradient(circle at 30% 40%, #0f0f2a, #010104)";
-        setTimeout(() => document.body.style.background = "", 800);
-        showToast('✨ Неоновая волна активирована!', '#ff2a6d');
-    };
+    document.getElementById('magicGlowBtn').onclick = () => { incrementCounter(); document.body.style.background = "radial-gradient(circle at 30% 40%, #0f0f2a, #010104)"; setTimeout(() => document.body.style.background = "", 800); showToast('✨ Неоновая волна активирована!', '#ff2a6d'); };
     
     // Модалки
     document.getElementById('contactFooterBtn').onclick = () => document.getElementById('contactModal').classList.remove('hidden');
     document.getElementById('aboutFooterBtn').onclick = () => document.getElementById('aboutModal').classList.remove('hidden');
     document.getElementById('closeContactModal').onclick = () => document.getElementById('contactModal').classList.add('hidden');
     document.getElementById('closeAboutModal').onclick = () => document.getElementById('aboutModal').classList.add('hidden');
-    document.getElementById('sendMsgBtn').onclick = () => {
-        const msg = document.getElementById('messageInput').value.trim();
-        if(msg) { showToast(`✅ Спасибо! "${msg.substring(0,30)}..."`, '#ff2a6d'); document.getElementById('messageInput').value = ''; document.getElementById('contactModal').classList.add('hidden'); }
-        else showToast('✏️ Напишите сообщение', '#ffaa44');
-    };
+    document.getElementById('sendMsgBtn').onclick = () => { const msg = document.getElementById('messageInput').value.trim(); if(msg) { showToast(`✅ Спасибо! "${msg.substring(0,30)}..."`, '#ff2a6d'); document.getElementById('messageInput').value = ''; document.getElementById('contactModal').classList.add('hidden'); } else showToast('✏️ Напишите сообщение', '#ffaa44'); };
     document.getElementById('docsFooterBtn').onclick = () => showToast('📄 Документация: версия 5.0 - облачная авторизация!', '#05d9e8');
     document.getElementById('adminFooterBtn').onclick = () => { if(currentUser?.isAdmin) document.getElementById('adminPanel').scrollIntoView({behavior:'smooth'}); };
     
     // Админ-панель вкладки
-    // Админ-панель вкладки (ОБНОВЛЁННАЯ ВЕРСИЯ)
-const adminUsersTab = document.getElementById('adminUsersTab');
-const adminContentTab = document.getElementById('adminContentTab');
-const adminCasinoTab = document.getElementById('adminCasinoTab');
-const adminUsersList = document.getElementById('adminUsersList');
-const adminContentEditor = document.getElementById('adminContentEditor');
-const adminCasinoPanel = document.getElementById('adminCasinoPanel');
-
-if (adminUsersTab) {
-    adminUsersTab.onclick = async () => {
-        adminUsersTab.classList.add('active');
-        if (adminContentTab) adminContentTab.classList.remove('active');
-        if (adminCasinoTab) adminCasinoTab.classList.remove('active');
-        if (adminUsersList) adminUsersList.classList.remove('hidden');
-        if (adminContentEditor) adminContentEditor.classList.add('hidden');
-        if (adminCasinoPanel) adminCasinoPanel.classList.add('hidden');
-        await loadAdminUsersList();
-    };
-}
-
-if (adminContentTab) {
-    adminContentTab.onclick = () => {
-        adminContentTab.classList.add('active');
-        if (adminUsersTab) adminUsersTab.classList.remove('active');
-        if (adminCasinoTab) adminCasinoTab.classList.remove('active');
-        if (adminUsersList) adminUsersList.classList.add('hidden');
-        if (adminContentEditor) adminContentEditor.classList.remove('hidden');
-        if (adminCasinoPanel) adminCasinoPanel.classList.add('hidden');
-        
-        const heroP = document.querySelector('.hero p');
-        const heroTextarea = document.getElementById('adminHeroText');
-        if (heroTextarea && heroP) heroTextarea.value = heroP.innerHTML;
-        
-        const factsContainer = document.getElementById('factsListAdmin');
-        if (factsContainer) {
-            factsContainer.innerHTML = '';
-            factsArray.forEach((fact, idx) => {
-                const div = document.createElement('div');
-                div.style.cssText = 'display: flex; justify-content: space-between; margin: 10px 0; padding: 8px; background: rgba(5,217,232,0.1); border-radius: 12px;';
-                div.innerHTML = `<span style="flex:1">${fact}</span><button class="tiny-btn" onclick="window.deleteFact(${idx})">🗑 Удалить</button>`;
-                factsContainer.appendChild(div);
-            });
-        }
-    };
-}
-
-if (adminCasinoTab) {
-    adminCasinoTab.onclick = async () => {
-        adminCasinoTab.classList.add('active');
-        if (adminUsersTab) adminUsersTab.classList.remove('active');
-        if (adminContentTab) adminContentTab.classList.remove('active');
-        if (adminUsersList) adminUsersList.classList.add('hidden');
-        if (adminContentEditor) adminContentEditor.classList.add('hidden');
-        if (adminCasinoPanel) adminCasinoPanel.classList.remove('hidden');
-        
-        await updateCasinoUserSelect();
-        await updateCasinoStats();
-    };
-}
-
-// Кнопка добавления баланса
-const addBalanceBtn = document.getElementById('addBalanceBtn');
-if (addBalanceBtn) {
-    addBalanceBtn.onclick = addCasinoBalanceToUser;
-}
-
-// Кнопка очистки всех пользователей
-const clearAllUsersBtn = document.getElementById('clearAllUsersBtn');
-if (clearAllUsersBtn) {
-    clearAllUsersBtn.onclick = clearAllUsers;
-}
-
-// Кнопка сохранения текста
-const saveHeroTextBtn = document.getElementById('saveHeroTextBtn');
-if (saveHeroTextBtn) {
-    saveHeroTextBtn.onclick = () => {
-        const newText = document.getElementById('adminHeroText').value;
-        const heroP = document.querySelector('.hero p');
-        if (heroP && newText) {
-            heroP.innerHTML = newText;
-            showToast('Приветственный текст обновлён!', '#0f0');
-        }
-    };
-}
-
-// Кнопка добавления факта
-const addFactBtn = document.getElementById('addFactBtn');
-if (addFactBtn) {
-    addFactBtn.onclick = () => {
-        const newFactInput = document.getElementById('newFactInput');
-        const newFact = newFactInput ? newFactInput.value.trim() : '';
-        if (newFact) {
-            factsArray.push(newFact);
-            saveFacts();
-            if (newFactInput) newFactInput.value = '';
-            showToast('Факт добавлен!', '#0f0');
-            if (adminContentTab) adminContentTab.click();
-        } else {
-            showToast('Введите текст факта!', '#ff2a6d');
-        }
-    };
-}
-
-
-
-    // Обновление списка пользователей для селекта
-async function updateCasinoUserSelect() {
-    const select = document.getElementById('adminUserSelect');
-    if (!select) return;
+    const adminUsersTab = document.getElementById('adminUsersTab');
+    const adminContentTab = document.getElementById('adminContentTab');
+    const adminCasinoTab = document.getElementById('adminCasinoTab');
+    const adminUsersList = document.getElementById('adminUsersList');
+    const adminContentEditor = document.getElementById('adminContentEditor');
+    const adminCasinoPanel = document.getElementById('adminCasinoPanel');
     
-    try {
-        const users = await getAllUsersCloud();
-        select.innerHTML = '<option value="">Выберите пользователя</option>';
-        for (const user of users) {
-            select.innerHTML += `<option value="${user.username}">${user.username} ${user.isAdmin ? '👑' : '👤'} | 💰 ${user.casinoBalance || 5000}</option>`;
-        }
-    } catch (e) {
-        console.error('Ошибка загрузки пользователей:', e);
-        select.innerHTML = '<option value="">Ошибка загрузки</option>';
-    }
-}
-
-// Обновление статистики казино
-async function updateCasinoStats() {
-    try {
-        const users = await getAllUsersCloud();
-        let totalBalance = 0;
-        let playerCount = users.length;
-        const topPlayers = [];
-        
-        for (const user of users) {
-            const balance = user.casinoBalance || 5000;
-            totalBalance += balance;
-            topPlayers.push({ username: user.username, balance, isAdmin: user.isAdmin });
-        }
-        
-        const avgBalance = playerCount > 0 ? Math.floor(totalBalance / playerCount) : 0;
-        
-        const totalPlayersSpan = document.getElementById('casinoTotalPlayers');
-        const totalBalanceSpan = document.getElementById('casinoTotalBalance');
-        const avgBalanceSpan = document.getElementById('casinoAvgBalance');
-        const topPlayersDiv = document.getElementById('casinoTopPlayers');
-        
-        if (totalPlayersSpan) totalPlayersSpan.textContent = playerCount;
-        if (totalBalanceSpan) totalBalanceSpan.textContent = totalBalance;
-        if (avgBalanceSpan) avgBalanceSpan.textContent = avgBalance;
-        
-        if (topPlayersDiv) {
-            const sorted = topPlayers.sort((a, b) => b.balance - a.balance).slice(0, 10);
-            topPlayersDiv.innerHTML = sorted.map((p, idx) => `
-                <div style="padding: 8px; border-bottom: 1px solid #05d9e830; display: flex; justify-content: space-between;">
-                    <span>${idx + 1}. ${p.username} ${p.isAdmin ? '👑' : ''}</span>
-                    <span style="color: #ffd700;">💰 ${p.balance}</span>
-                </div>
-            `).join('');
-        }
-    } catch (e) {
-        console.error('Ошибка обновления статистики:', e);
-    }
-}
-
-// Начисление очков казино (облачная версия)
-async function addCasinoBalanceToUser() {
-    const select = document.getElementById('adminUserSelect');
-    const amountInput = document.getElementById('adminBalanceAmount');
-    const username = select ? select.value : '';
-    const amount = amountInput ? parseInt(amountInput.value) : 0;
-    
-    if (!username) {
-        showToast('❌ Выберите пользователя!', '#ff2a6d');
-        return;
-    }
-    if (isNaN(amount) || amount <= 0) {
-        showToast('❌ Введите корректную сумму (больше 0)!', '#ff2a6d');
-        return;
+    if (adminUsersTab) {
+        adminUsersTab.onclick = async () => {
+            adminUsersTab.classList.add('active');
+            if (adminContentTab) adminContentTab.classList.remove('active');
+            if (adminCasinoTab) adminCasinoTab.classList.remove('active');
+            if (adminUsersList) adminUsersList.classList.remove('hidden');
+            if (adminContentEditor) adminContentEditor.classList.add('hidden');
+            if (adminCasinoPanel) adminCasinoPanel.classList.add('hidden');
+            await loadAdminUsersList();
+        };
     }
     
-    try {
-        const success = await addCasinoBalanceCloud(username, amount);
-        if (success) {
-            showToast(`💰 ${username} получил ${amount} очков казино!`, '#ffd700');
-            
-            if (currentUser && currentUser.username === username) {
-                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + amount;
-                updateBalanceUI();
+    if (adminContentTab) {
+        adminContentTab.onclick = () => {
+            adminContentTab.classList.add('active');
+            if (adminUsersTab) adminUsersTab.classList.remove('active');
+            if (adminCasinoTab) adminCasinoTab.classList.remove('active');
+            if (adminUsersList) adminUsersList.classList.add('hidden');
+            if (adminContentEditor) adminContentEditor.classList.remove('hidden');
+            if (adminCasinoPanel) adminCasinoPanel.classList.add('hidden');
+            const heroP = document.querySelector('.hero p');
+            const heroTextarea = document.getElementById('adminHeroText');
+            if (heroTextarea && heroP) heroTextarea.value = heroP.innerHTML;
+            const factsContainer = document.getElementById('factsListAdmin');
+            if (factsContainer) {
+                factsContainer.innerHTML = '';
+                factsArray.forEach((fact, idx) => {
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display: flex; justify-content: space-between; margin: 10px 0; padding: 8px; background: rgba(5,217,232,0.1); border-radius: 12px;';
+                    div.innerHTML = `<span style="flex:1">${fact}</span><button class="tiny-btn" onclick="window.deleteFact(${idx})">🗑 Удалить</button>`;
+                    factsContainer.appendChild(div);
+                });
             }
-            
+        };
+    }
+    
+    if (adminCasinoTab) {
+        adminCasinoTab.onclick = async () => {
+            adminCasinoTab.classList.add('active');
+            if (adminUsersTab) adminUsersTab.classList.remove('active');
+            if (adminContentTab) adminContentTab.classList.remove('active');
+            if (adminUsersList) adminUsersList.classList.add('hidden');
+            if (adminContentEditor) adminContentEditor.classList.add('hidden');
+            if (adminCasinoPanel) adminCasinoPanel.classList.remove('hidden');
             await updateCasinoUserSelect();
             await updateCasinoStats();
-            await loadAdminUsersList();
-        } else {
-            showToast('❌ Ошибка начисления!', '#ff2a6d');
-        }
-    } catch (e) {
-        console.error('Ошибка:', e);
-        showToast('❌ Ошибка начисления!', '#ff2a6d');
+        };
     }
-}
-
-// Быстрое начисление 100 очков
-window.quickAddBalanceCloud = async function(username) {
-    try {
-        const success = await addCasinoBalanceCloud(username, 100);
-        if (success) {
-            showToast(`💰 ${username} +100 очков!`, '#ffd700');
-            
-            if (currentUser && currentUser.username === username) {
-                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + 100;
-                updateBalanceUI();
-            }
-            
-            await loadAdminUsersList();
-            await updateCasinoUserSelect();
-            await updateCasinoStats();
-        } else {
-            showToast('❌ Ошибка начисления!', '#ff2a6d');
-        }
-    } catch (e) {
-        console.error('Ошибка:', e);
-        showToast('❌ Ошибка начисления!', '#ff2a6d');
-    }
-};
-
-// Обновление списка пользователей в админ-панели
-async function loadAdminUsersList() {
-    const container = document.getElementById('usersListContainer');
-    if (!container) return;
     
-    try {
-        const users = await getAllUsersCloud();
-        container.innerHTML = '';
-        for (const user of users) {
-            const div = document.createElement('div');
-            div.style.cssText = 'padding: 10px; border-bottom: 1px solid #05d9e8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;';
-            div.innerHTML = `
-                <span><b>${user.username}</b> ${user.isAdmin ? '👑' : ''} | Игр: ${user.gamesPlayed || 0} | 🎰 Баланс: ${user.casinoBalance || 5000}</span>
-                <div style="display: flex; gap: 8px;">
-                    ${!user.isAdmin ? `<button class="tiny-btn" onclick="window.deleteUserCloud('${user.username}')">🗑 Удалить</button>` : ''}
-                    <button class="tiny-btn" onclick="window.quickAddBalanceCloud('${user.username}')">💰 +100</button>
-                </div>
-            `;
-            container.appendChild(div);
+    document.getElementById('addBalanceBtn')?.addEventListener('click', addCasinoBalanceToUser);
+    document.getElementById('clearAllUsersBtn')?.addEventListener('click', async () => {
+        if (confirm('Удалить ВСЕХ пользователей (кроме админа)?')) {
+            const users = await getAllUsersCloud();
+            for (const user of users) { if (!user.isAdmin) await supabaseClient.request(`/users?username=eq.${encodeURIComponent(user.username)}`, { method: 'DELETE' }); }
+            showToast('Все пользователи удалены', '#ff2a6d');
+            if (currentUser && !currentUser.isAdmin) { logoutCloud(); currentUser = null; updateUIForUser(); }
+            await loadAdminUsersList(); await updateCasinoUserSelect(); await updateCasinoStats();
         }
-    } catch (e) {
-        console.error('Ошибка загрузки пользователей:', e);
-        container.innerHTML = '<p style="color: #ff2a6d;">Ошибка загрузки пользователей</p>';
-    }
-}
-
-// Удаление пользователя
-window.deleteUserCloud = async function(username) {
-    if (confirm(`Удалить пользователя ${username}?`)) {
-        try {
-            await supabaseClient.request(`/users?username=eq.${encodeURIComponent(username)}`, { method: 'DELETE' });
-            showToast(`Пользователь ${username} удалён`, '#ff2a6d');
-            
-            if (currentUser && currentUser.username === username) {
-                logoutCloud();
-                currentUser = null;
-                updateUIForUser();
-                updateBalanceUI();
-            }
-            
-            await loadAdminUsersList();
-            await updateCasinoUserSelect();
-            await updateCasinoStats();
-        } catch (e) {
-            console.error('Ошибка удаления:', e);
-            showToast('Ошибка удаления', '#ff2a6d');
-        }
-    }
-};
-    // Карточки
-    document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('click', () => { showToast(`🔍 Карточка "${card.getAttribute('data-tech')}"`, '#05d9e8'); incrementCounter(); });
     });
+    document.getElementById('saveHeroTextBtn')?.addEventListener('click', () => { const newText = document.getElementById('adminHeroText').value; const heroP = document.querySelector('.hero p'); if (heroP && newText) { heroP.innerHTML = newText; showToast('Приветственный текст обновлён!', '#0f0'); } });
+    document.getElementById('addFactBtn')?.addEventListener('click', () => { const newFact = document.getElementById('newFactInput')?.value.trim(); if (newFact) { factsArray.push(newFact); saveFacts(); document.getElementById('newFactInput').value = ''; showToast('Факт добавлен!', '#0f0'); if (adminContentTab) adminContentTab.click(); } else showToast('Введите текст факта!', '#ff2a6d'); });
+    
+    // Карточки
+    document.querySelectorAll('.card, .card-2').forEach(card => { card.addEventListener('click', () => { showToast(`🔍 Карточка "${card.getAttribute('data-tech')}"`, '#05d9e8'); incrementCounter(); }); });
     
     loadFactsFromStorage();
     updateCounterUI();
     
-    // Стиль для тостов
     const style = document.createElement('style');
     style.textContent = `.success-toast { font-family: 'Segoe UI', sans-serif; box-shadow: 0 0 20px rgba(0,0,0,0.3); } @keyframes fadeOut { 0% { opacity: 1; transform: translateX(-50%) translateY(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-20px); visibility: hidden; } }`;
     document.head.appendChild(style);
