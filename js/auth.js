@@ -9,33 +9,31 @@ const supabaseClient = {
     key: SUPABASE_ANON_KEY,
     
     async request(endpoint, options = {}) {
-    const response = await fetch(`${this.url}/rest/v1${endpoint}`, {
-        ...options,
-        headers: {
-            'apikey': this.key,
-            'Authorization': `Bearer ${this.key}`,
-            'Content-Type': 'application/json',
-            ...options.headers
+        const response = await fetch(`${this.url}/rest/v1${endpoint}`, {
+            ...options,
+            headers: {
+                'apikey': this.key,
+                'Authorization': `Bearer ${this.key}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
-    });
-    
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP error! status: ${response.status}`);
-    }
-    
-    // Проверяем, есть ли содержимое в ответе
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        const text = await response.text();
-        if (text && text.length > 0) {
-            return JSON.parse(text);
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const text = await response.text();
+            if (text && text.length > 0) {
+                return JSON.parse(text);
+            }
+            return {};
         }
-        return {}; // Возвращаем пустой объект для пустого ответа
-    }
-    
-    return {}; // Для не-JSON ответов
-}
+        return {};
+    },
     
     async query(table, params = {}) {
         let url = `/${table}?select=*`;
@@ -51,11 +49,18 @@ const supabaseClient = {
     },
     
     async update(table, data, username) {
-    return this.request(`/${table}?username=eq.${encodeURIComponent(username)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
+        return this.request(`/${table}?username=eq.${encodeURIComponent(username)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    },
+    
+    async delete(table, username) {
+        return this.request(`/${table}?username=eq.${encodeURIComponent(username)}`, {
+            method: 'DELETE'
+        });
+    }
+};
 
 // Хеширование пароля (SHA-256)
 async function hashPassword(password) {
@@ -76,13 +81,13 @@ async function loadUserFromCloud(username) {
                 username: user.username,
                 isAdmin: user.is_admin,
                 registered: user.registered,
-                gamesPlayed: user.games_played,
-                snakeScore: user.snake_score,
-                tetrisScore: user.tetris_score,
-                dinoScore: user.dino_score,
-                flappyScore: user.flappy_score,
-                memoryScore: user.memory_score,
-                casinoBalance: user.casino_balance
+                gamesPlayed: user.games_played || 0,
+                snakeScore: user.snake_score || 0,
+                tetrisScore: user.tetris_score || 0,
+                dinoScore: user.dino_score || 0,
+                flappyScore: user.flappy_score || 0,
+                memoryScore: user.memory_score || 0,
+                casinoBalance: user.casino_balance || 5000
             };
         }
         return null;
@@ -100,7 +105,7 @@ async function registerUserCloud(username, password) {
         
         const passwordHash = await hashPassword(password);
         await supabaseClient.insert('users', {
-             username: username,
+            username: username,
             password_hash: passwordHash,
             is_admin: false,
             registered: new Date().toISOString(),
@@ -110,7 +115,7 @@ async function registerUserCloud(username, password) {
             dino_score: 0,
             flappy_score: 0,
             memory_score: 0,
-            casino_balance: 250
+            casino_balance: 5000
         });
         
         return { success: true };
@@ -144,7 +149,6 @@ async function loginUserCloud(username, password) {
                 casinoBalance: users[0].casino_balance || 5000
             };
             
-            // Сохраняем сессию в localStorage (только ID пользователя)
             localStorage.setItem('neon_user_id', userData.id);
             localStorage.setItem('neon_username', userData.username);
             
@@ -215,6 +219,9 @@ async function getAllUsersCloud() {
             gamesPlayed: u.games_played || 0,
             snakeScore: u.snake_score || 0,
             tetrisScore: u.tetris_score || 0,
+            dinoScore: u.dino_score || 0,
+            flappyScore: u.flappy_score || 0,
+            memoryScore: u.memory_score || 0,
             casinoBalance: u.casino_balance || 5000
         }));
     } catch (e) {
@@ -238,6 +245,7 @@ async function addCasinoBalanceCloud(username, amount) {
         return false;
     }
 }
+
 // ========== ГЛОБАЛЬНЫЙ ЭКСПОРТ ФУНКЦИЙ ==========
 window.restoreSession = restoreSession;
 window.loginUserCloud = loginUserCloud;
