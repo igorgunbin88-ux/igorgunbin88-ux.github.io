@@ -77,7 +77,7 @@ async function updateUIForUser() {
     if (currentUser) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
-        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
+        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''};
         userDisplay.style.display = 'inline';
         statsPanel.classList.remove('hidden');
         document.getElementById('userGamesPlayed').textContent = currentUser.gamesPlayed || 0;
