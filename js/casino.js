@@ -37,7 +37,7 @@ async function updateUIForUser() {
     if (currentUser) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
-        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
+        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 250}`;
         userDisplay.style.display = 'inline';
     } else {
         loginBtn.style.display = 'inline-block';
@@ -50,17 +50,17 @@ function updateBalanceUI() {
     const balanceSpan = document.getElementById('balanceAmount');
     const userDisplay = document.getElementById('userDisplay');
     if (balanceSpan && currentUser) {
-        balanceSpan.textContent = currentUser.casinoBalance || 5000;
+        balanceSpan.textContent = currentUser.casinoBalance || 250;
     }
     if (userDisplay && currentUser) {
-        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
+        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 250}`;
     }
 }
 
 async function updateUserBalance(changeAmount) {
     if (!currentUser) return false;
     
-    const newBalance = (currentUser.casinoBalance || 5000) + changeAmount;
+    const newBalance = (currentUser.casinoBalance || 250) + changeAmount;
     if (newBalance < 0) return false;
     
     try {
