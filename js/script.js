@@ -215,6 +215,105 @@ window.quickAddBalanceCloud = async function(username) {
     }
 };
 
+// ========== ФУНКЦИИ ДЛЯ КАЗИНО В АДМИН-ПАНЕЛИ ==========
+
+async function updateCasinoUserSelect() {
+    const select = document.getElementById('adminUserSelect');
+    if (!select) return;
+    
+    try {
+        const users = await getAllUsersCloud();
+        select.innerHTML = '<option value="">Выберите пользователя</option>';
+        for (const user of users) {
+            select.innerHTML += `<option value="${user.username}">${user.username} ${user.isAdmin ? '👑' : '👤'} | 💰 ${user.casinoBalance || 5000}</option>`;
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки пользователей:', e);
+        select.innerHTML = '<option value="">Ошибка загрузки</option>';
+    }
+}
+
+async function updateCasinoStats() {
+    try {
+        const users = await getAllUsersCloud();
+        let totalBalance = 0;
+        let playerCount = users.length;
+        const topPlayers = [];
+        
+        for (const user of users) {
+            const balance = user.casinoBalance || 5000;
+            totalBalance += balance;
+            topPlayers.push({ username: user.username, balance, isAdmin: user.isAdmin });
+        }
+        
+        const avgBalance = playerCount > 0 ? Math.floor(totalBalance / playerCount) : 0;
+        
+        const totalPlayersSpan = document.getElementById('casinoTotalPlayers');
+        const totalBalanceSpan = document.getElementById('casinoTotalBalance');
+        const avgBalanceSpan = document.getElementById('casinoAvgBalance');
+        const topPlayersDiv = document.getElementById('casinoTopPlayers');
+        
+        if (totalPlayersSpan) totalPlayersSpan.textContent = playerCount;
+        if (totalBalanceSpan) totalBalanceSpan.textContent = totalBalance;
+        if (avgBalanceSpan) avgBalanceSpan.textContent = avgBalance;
+        
+        if (topPlayersDiv) {
+            const sorted = topPlayers.sort((a, b) => b.balance - a.balance).slice(0, 10);
+            topPlayersDiv.innerHTML = sorted.map((p, idx) => `
+                <div style="padding: 8px; border-bottom: 1px solid #05d9e830; display: flex; justify-content: space-between;">
+                    <span>${idx + 1}. ${p.username} ${p.isAdmin ? '👑' : ''}</span>
+                    <span style="color: #ffd700;">💰 ${p.balance}</span>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Ошибка обновления статистики:', e);
+    }
+}
+
+async function addCasinoBalanceToUser() {
+    const select = document.getElementById('adminUserSelect');
+    const amountInput = document.getElementById('adminBalanceAmount');
+    const username = select ? select.value : '';
+    const amount = amountInput ? parseInt(amountInput.value) : 0;
+    
+    if (!username) {
+        showToast('❌ Выберите пользователя!', '#ff2a6d');
+        return;
+    }
+    if (isNaN(amount) || amount <= 0) {
+        showToast('❌ Введите корректную сумму (больше 0)!', '#ff2a6d');
+        return;
+    }
+    
+    try {
+        const success = await addCasinoBalanceCloud(username, amount);
+        if (success) {
+            showToast(`💰 ${username} получил ${amount} очков казино!`, '#ffd700');
+            
+            if (currentUser && currentUser.username === username) {
+                currentUser.casinoBalance = (currentUser.casinoBalance || 5000) + amount;
+                updateBalanceUI();
+                updateUIForUser();
+            }
+            
+            await updateCasinoUserSelect();
+            await updateCasinoStats();
+            await loadAdminUsersList();
+        } else {
+            showToast('❌ Ошибка начисления!', '#ff2a6d');
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+        showToast('❌ Ошибка начисления!', '#ff2a6d');
+    }
+}
+
+// Экспортируем функции для использования в других файлах
+window.updateCasinoUserSelect = updateCasinoUserSelect;
+window.updateCasinoStats = updateCasinoStats;
+window.addCasinoBalanceToUser = addCasinoBalanceToUser;
+
 // ========== ГЕНЕРАТОР ФАКТОВ ==========
 let factsArray = [
     "🌌 Первый компьютерный вирус назывался Creeper (1971).",
@@ -673,7 +772,7 @@ class NeonTetris {
     }
 }
 
-// ========== ИГРА 3: ДИНОЗАВРИК (сокращён) ==========
+// ========== ИГРА 3: ДИНОЗАВРИК ==========
 class NeonDino {
     constructor(canvasId, scoreId, highScoreId) {
         this.canvas = document.getElementById(canvasId);
@@ -759,7 +858,7 @@ class NeonDino {
     setupControls() { document.addEventListener('keydown', (e) => { if (e.key === 'ArrowUp' || e.key === ' ') { e.preventDefault(); this.jump(); } }); this.canvas.addEventListener('click', () => this.jump()); }
 }
 
-// ========== ИГРА 4: ФЛЭППИ БЁРД (сокращён) ==========
+// ========== ИГРА 4: ФЛЭППИ БЁРД ==========
 class NeonFlappy {
     constructor(canvasId, scoreId, highScoreId) {
         this.canvas = document.getElementById(canvasId);
