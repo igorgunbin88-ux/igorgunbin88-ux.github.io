@@ -115,7 +115,7 @@ async function registerUserCloud(username, password) {
             dino_score: 0,
             flappy_score: 0,
             memory_score: 0,
-            casino_balance: 5000
+            casino_balance: 250
         });
         
         return { success: true };
@@ -146,7 +146,7 @@ async function loginUserCloud(username, password) {
                 dinoScore: users[0].dino_score || 0,
                 flappyScore: users[0].flappy_score || 0,
                 memoryScore: users[0].memory_score || 0,
-                casinoBalance: users[0].casino_balance || 5000
+                casinoBalance: users[0].casino_balance || 250
             };
             
             localStorage.setItem('neon_user_id', userData.id);
@@ -182,7 +182,7 @@ async function restoreSession() {
                 dinoScore: users[0].dino_score || 0,
                 flappyScore: users[0].flappy_score || 0,
                 memoryScore: users[0].memory_score || 0,
-                casinoBalance: users[0].casino_balance || 5000
+                casinoBalance: users[0].casino_balance || 250
             };
         }
     } catch (e) {
@@ -222,7 +222,7 @@ async function getAllUsersCloud() {
             dinoScore: u.dino_score || 0,
             flappyScore: u.flappy_score || 0,
             memoryScore: u.memory_score || 0,
-            casinoBalance: u.casino_balance || 5000
+            casinoBalance: u.casino_balance || 250
         }));
     } catch (e) {
         console.error('Ошибка загрузки пользователей:', e);
@@ -235,7 +235,7 @@ async function addCasinoBalanceCloud(username, amount) {
     try {
         const user = await loadUserFromCloud(username);
         if (user) {
-            const newBalance = (user.casinoBalance || 5000) + amount;
+            const newBalance = (user.casinoBalance || 250) + amount;
             await supabaseClient.update('users', { casino_balance: newBalance }, username);
             return true;
         }
