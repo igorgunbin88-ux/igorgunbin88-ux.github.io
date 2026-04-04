@@ -246,6 +246,42 @@ async function addCasinoBalanceCloud(username, amount) {
     }
 }
 
+// ========== СОХАНЕНИЕ РОГАЛИКА В ОБЛАКО ==========
+
+// Сохранение прогресса игры в облако
+async function updateGameProgressCloud(username, gameData) {
+    try {
+        await supabaseClient.update('users', { 
+            game_progress: JSON.stringify(gameData),
+            last_saved: new Date().toISOString()
+        }, username);
+        console.log('✅ Прогресс сохранён в облако');
+        return true;
+    } catch (e) {
+        console.error('Ошибка сохранения прогресса:', e);
+        return false;
+    }
+}
+
+// Загрузка прогресса игры из облака
+async function loadGameProgressCloud(username) {
+    try {
+        const users = await supabaseClient.query('users', { username });
+        if (users && users[0] && users[0].game_progress) {
+            return JSON.parse(users[0].game_progress);
+        }
+        return null;
+    } catch (e) {
+        console.error('Ошибка загрузки прогресса:', e);
+        return null;
+    }
+}
+
+// Экспортируем функции
+window.updateGameProgressCloud = updateGameProgressCloud;
+window.loadGameProgressCloud = loadGameProgressCloud;
+
+
 // ========== ГЛОБАЛЬНЫЙ ЭКСПОРТ ФУНКЦИЙ ==========
 window.restoreSession = restoreSession;
 window.loginUserCloud = loginUserCloud;
