@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="css/style.css">
+    <title>NEON ROGUELIKE</title>
+</head>
+<body>
+    <div class="container">
+        <div class="neo-header">
+            <div class="logo">⚡ NEON ROGUELIKE ⚡</div>
+            <div class="header-right">
+                <span id="userDisplay" class="user-greeting"></span>
+                <a href="index.html" class="nav-link">✦ Главная</a>
+                <button id="loginBtn" class="btn-neon btn-pink">🔓 Войти</button>
+            <button id="logoutBtn" class="btn-neon" style="display:none;">🚪 Выйти</button>
+                <button class="btn-neon btn-pink" onclick="newGame()">🔄 Новая игра</button>
+            </div>
+        </div>
+        <div class="hero">
+            <h1>АМУЛЕТ СУДЬБЫ</h1>
+            <p>Погрузись в глубины подземелья, сразись с древними монстрами, собери могущественные артефакты и найди легендарный Амулет Судьбы на 100-м этаже!</p>
+            <button class="glow-btn" onclick="showNewGameMenu()">⚔️ НАЧАТЬ ПУТЕШЕСТВИЕ ⚔️</button>
+        </div>
+
+        <!-- Основной игровой контент -->
+        <div id="initialPanel">
+            <div class="cards-grid-2">
+                <div class="card-2">
+                    <div class="card-icon-2">🏺</div>
+                    <h3>Артефакты</h3>
+                    <p>Собирай могущественные артефакты, которые усилят твоего героя. Обычные, редкие и легендарные — каждый даёт уникальные бонусы!</p>
+                </div>
+                <div class="card-2">
+                    <div class="card-icon-2">⚔️</div>
+                    <h3>6 Рас</h3>
+                    <p>Человек, Эльф, Орк, Дварф, Гном, Драконид — у каждой свои уникальные способности и стиль игры.</p>
+                </div>
+                <div class="card-2">
+                    <div class="card-icon-2">🔥</div>
+                    <h3>5 Сложностей</h3>
+                    <p>От "Легкой" до "Безумия" — выбери вызов себе по силам. Модификаторы влияют на всё: HP, урон, цены, опыт и золото.</p>
+                </div>
+                <div class="card-2">
+                    <div class="card-icon-2">📜</div>
+                    <h3>Квесты</h3>
+                    <p>Выполняй задания, получай награды и открывай достижения. Каждый квест приближает тебя к финальной цели!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель статуса персонажа -->
+<div class="roguelike-stats" id="statsPanel" style="display: none;">
+    <h3>📊 СТАТУС ПЕРСОНАЖА</h3>
+    <div class="stat-grid">
+        <div class="stat-item">
+            <div class="stat-label">Имя</div>
+            <div class="stat-value" id="playerName">—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Сложность</div>
+            <div class="stat-value" id="playerDifficult">—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Раса</div>
+            <div class="stat-value" id="playerRace">—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Уровень</div>
+            <div class="stat-value" id="playerLevel">1</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">❤️ HP</div>
+            <div class="stat-value" id="playerHp">—/—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">💪 Сила</div>
+            <div class="stat-value" id="playerStrength">—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">🏃 Ловкость</div>
+            <div class="stat-value" id="playerAgility">—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">🍀 Удача</div>
+            <div class="stat-value" id="playerLuck">—</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">💰 Монеты</div>
+            <div class="stat-value" id="playerGold">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">⚔️ Оружие</div>
+            <div class="stat-value" id="playerWeapon">Нет</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">🛡️ Броня</div>
+            <div class="stat-value" id="playerArmor">Нет</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">📊 Этаж</div>
+            <div class="stat-value" id="currentFloor">0</div>
+        </div>
+    </div>
+    <div class="action-grid" style="margin-top: 15px;">
+        <button class="neon-button" onclick="showStatusModal()">📊 Статус</button>
+        <button class="neon-button" onclick="showInventoryModal()">🎒 Инвентарь</button>
+        <button class="neon-button" onclick="showQuestsModal()">📜 Квесты</button>
+        <button class="neon-button" onclick="showArtifactsModal()">🏺 Артефакты</button>
+        <button class="neon-button" onclick="manualSave()">💾 Сохранить</button>
+        <button class="neon-button" onclick="forceContinue()">⚠️ Продолжить</button>
+    </div>
+    <div class="hp-bar" style="margin-top: 15px;">
+        <center><div class="hp-fill" id="playerHpFill" style="width: 100%; background: linear-gradient(90deg, #44ff44, #88ff88);">100%</div></center>
+    </div>
+</div>
+
+        <!-- Боевая панель -->
+        <div id="combatPanel" style="display: none;">
+            <div class="enemy-card">
+                <div class="enemy-name" id="enemyName">Враг</div>
+                <div class="enemy-hp-bar">
+                    <div class="enemy-hp-fill" id="enemyHpFill" style="width: 100%">100%</div>
+                </div>
+                <div class="action-grid">
+                    <button class="neon-button" onclick="combatAttack()">⚔️ Атаковать</button>
+                    <button class="neon-button" onclick="useFood()">🍖 Использовать еду</button>
+                    <button class="neon-button" onclick="useActiveSkill()">⚡ Активная способность</button>
+                    <button class="neon-button" onclick="tryEscape()">🏃 Сбежать</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameLog" class="combat-log" style="display: none;"></div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+
+   <footer>
+    <div class="footer-links">
+        <a class="footer-link" id="contactFooterBtn">📧 Связаться с нами</a>
+        <a class="footer-link" id="aboutFooterBtn">📖 О проекте</a>
+        <a class="footer-link" id="docsFooterBtn">📜 Документация</a>
+        <a class="footer-link" href="casino.html">🎰 Казино</a>
+    </div>
+</footer>
+
+<div id="authModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeAuthModal">&times;</span>
+        <h2 id="authModalTitle">🔐 Авторизация</h2>
+        <input type="text" id="authUsername" placeholder="Имя пользователя">
+        <input type="password" id="authPassword" placeholder="Пароль">
+        <p id="authError" class="error-text"></p>
+        <button id="authSubmitBtn" class="google-btn">Войти</button>
+        <p><a href="#" id="switchAuthMode">Нет аккаунта? Зарегистрироваться</a></p>
+    </div>
+</div>
+
+<!-- Модалка обратной связи -->
+<div id="contactModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeContactModal">&times;</span>
+        <h2>💬 Обратная связь</h2>
+        <textarea id="messageInput" rows="3" placeholder="Ваше сообщение или идея..."></textarea>
+        <button id="sendMsgBtn" class="btn-neon" style="width:100%; margin-top: 8px;">Отправить</button>
+        <span class="logo">*пока не работает</span>
+    </div>
+</div>
+
+<!-- Модалка "О проекте" -->
+<div id="aboutModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" id="closeAboutModal">&times;</span>
+        <h2>✨ О Neon Flux</h2>
+        <p>Современный взгляд на веб-дизайн с акцентом на неоновую эстетику, микро-анимации и динамический контент. Сайт демонстрирует продвинутые JS-эффекты и полностью кастомизируемую атмосферу.</p>
+        <p style="margin-top: 15px;">Версия 3.0 — мини-игра, регистрация, админ-панель, терменвокс, matrix rain!</p>
+    </div>
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
