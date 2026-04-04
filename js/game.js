@@ -463,7 +463,7 @@ class Player {
 
     useActiveSkill() {
         if (this.activeSkillCooldown > 0) {
-            addLog(`❌ Способность перезаряжается! Осталось: ${this.activeSkillCooldown} ходов`, "error");
+            addLog(`❌ Способность перезаряжается! Осталось: ${this.activeSkillCooldown} этажей`, "error");
             return null;
         }
         let result = null;
