@@ -1278,16 +1278,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeMenu = document.getElementById('closeMenu');
     
     // Создаём оверлей
-    const overlay = document.createElement('div');
-    overlay.className = 'mobile-overlay';
-    document.body.appendChild(overlay);
+    let overlay = document.querySelector('.mobile-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'mobile-overlay';
+        document.body.appendChild(overlay);
+    }
     
     // Открыть меню
     function openMenu() {
         mobileNav.classList.add('open');
         burgerMenu.classList.add('active');
         overlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
+        document.body.classList.add('menu-open');
     }
     
     // Закрыть меню
@@ -1295,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mobileNav.classList.remove('open');
         burgerMenu.classList.remove('active');
         overlay.classList.remove('active');
-        document.body.style.overflow = '';
+        document.body.classList.remove('menu-open');
     }
     
     if (burgerMenu) burgerMenu.addEventListener('click', openMenu);
@@ -1304,10 +1307,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Закрытие при нажатии ESC
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && mobileNav.classList.contains('open')) {
+        if (e.key === 'Escape' && mobileNav && mobileNav.classList.contains('open')) {
             closeMenuFunc();
         }
     });
+    
+    // Закрытие при свайпе влево
+    let touchStartX = 0;
+    if (mobileNav) {
+        mobileNav.addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].clientX;
+        });
+        
+        mobileNav.addEventListener('touchmove', function(e) {
+            const touchEndX = e.touches[0].clientX;
+            if (touchEndX - touchStartX > 50) {
+                closeMenuFunc();
+            }
+        });
+    }
     
     // Синхронизация авторизации с мобильным меню
     function syncMobileAuth() {
@@ -1338,8 +1356,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Наблюдаем за изменениями авторизации
     const observer = new MutationObserver(syncMobileAuth);
-    const userDisplay = document.getElementById('userDisplay');
-    if (userDisplay) observer.observe(userDisplay, { attributes: true, childList: true });
+    const userDisplayElem = document.getElementById('userDisplay');
+    if (userDisplayElem) observer.observe(userDisplayElem, { attributes: true, childList: true });
     
     // Кнопки авторизации в мобильном меню
     const mobileLoginBtn = document.getElementById('mobileLoginBtn');
