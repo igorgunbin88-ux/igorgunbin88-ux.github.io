@@ -1271,4 +1271,99 @@ window.addEventListener('load', async () => {
     document.head.appendChild(style);
 });
 
+// ========== МОБИЛЬНОЕ МЕНЮ ==========
+document.addEventListener('DOMContentLoaded', function() {
+    const burgerMenu = document.getElementById('burgerMenu');
+    const mobileNav = document.getElementById('mobileNav');
+    const closeMenu = document.getElementById('closeMenu');
+    
+    // Создаём оверлей
+    const overlay = document.createElement('div');
+    overlay.className = 'mobile-overlay';
+    document.body.appendChild(overlay);
+    
+    // Открыть меню
+    function openMenu() {
+        mobileNav.classList.add('open');
+        burgerMenu.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Закрыть меню
+    function closeMenuFunc() {
+        mobileNav.classList.remove('open');
+        burgerMenu.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    if (burgerMenu) burgerMenu.addEventListener('click', openMenu);
+    if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
+    overlay.addEventListener('click', closeMenuFunc);
+    
+    // Закрытие при нажатии ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && mobileNav.classList.contains('open')) {
+            closeMenuFunc();
+        }
+    });
+    
+    // Синхронизация авторизации с мобильным меню
+    function syncMobileAuth() {
+        const userDisplay = document.getElementById('userDisplay');
+        const mobileUserDisplay = document.getElementById('mobileUserDisplay');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+        const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+        
+        if (userDisplay && userDisplay.style.display !== 'none') {
+            const username = userDisplay.textContent.split('|')[0].trim();
+            if (mobileUserDisplay) {
+                mobileUserDisplay.textContent = username;
+                mobileUserDisplay.style.display = 'block';
+            }
+            if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
+            if (mobileLogoutBtn) mobileLogoutBtn.style.display = 'block';
+        } else {
+            if (mobileUserDisplay) mobileUserDisplay.style.display = 'none';
+            if (mobileLoginBtn) mobileLoginBtn.style.display = 'block';
+            if (mobileLogoutBtn) mobileLogoutBtn.style.display = 'none';
+        }
+    }
+    
+    // Синхронизируем при загрузке
+    syncMobileAuth();
+    
+    // Наблюдаем за изменениями авторизации
+    const observer = new MutationObserver(syncMobileAuth);
+    const userDisplay = document.getElementById('userDisplay');
+    if (userDisplay) observer.observe(userDisplay, { attributes: true, childList: true });
+    
+    // Кнопки авторизации в мобильном меню
+    const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+    const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+    
+    if (mobileLoginBtn) {
+        mobileLoginBtn.onclick = () => {
+            closeMenuFunc();
+            setTimeout(() => {
+                const loginBtn = document.getElementById('loginBtn');
+                if (loginBtn) loginBtn.click();
+            }, 300);
+        };
+    }
+    
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.onclick = () => {
+            closeMenuFunc();
+            setTimeout(() => {
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) logoutBtn.click();
+            }, 300);
+        };
+    }
+});
+
 console.log('🔥 Облачная авторизация активна! Все 5 игр загружены!');
