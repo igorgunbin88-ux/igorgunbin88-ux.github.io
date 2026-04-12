@@ -1299,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Синхронизация авторизации с мобильным меню
+    // Функция синхронизации авторизации
     function syncMobileAuth() {
         const userDisplay = document.getElementById('userDisplay');
         const mobileUserDisplay = document.getElementById('mobileUserDisplay');
@@ -1308,7 +1308,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const mobileLoginBtn = document.getElementById('mobileLoginBtn');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
         
-        if (userDisplay && userDisplay.style.display !== 'none') {
+        // Проверяем, видна ли кнопка логина (значит пользователь НЕ авторизован)
+        const isLoggedIn = loginBtn && loginBtn.style.display === 'none';
+        
+        console.log('Sync mobile auth - isLoggedIn:', isLoggedIn);
+        
+        if (isLoggedIn && userDisplay && userDisplay.textContent) {
+            // Пользователь авторизован
             const username = userDisplay.textContent.split('|')[0].trim();
             if (mobileUserDisplay) {
                 mobileUserDisplay.textContent = username;
@@ -1317,13 +1323,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
             if (mobileLogoutBtn) mobileLogoutBtn.style.display = 'block';
         } else {
+            // Пользователь НЕ авторизован
             if (mobileUserDisplay) mobileUserDisplay.style.display = 'none';
             if (mobileLoginBtn) mobileLoginBtn.style.display = 'block';
             if (mobileLogoutBtn) mobileLogoutBtn.style.display = 'none';
         }
     }
     
+    // Запускаем синхронизацию
     syncMobileAuth();
+    
+    // Наблюдаем за изменениями кнопок авторизации
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    if (loginBtn) {
+        const observer = new MutationObserver(syncMobileAuth);
+        observer.observe(loginBtn, { attributes: true, attributeFilter: ['style'] });
+    }
+    if (logoutBtn) {
+        const observer = new MutationObserver(syncMobileAuth);
+        observer.observe(logoutBtn, { attributes: true, attributeFilter: ['style'] });
+    }
     
     // Кнопки авторизации в мобильном меню
     const mobileLoginBtn = document.getElementById('mobileLoginBtn');
@@ -1333,8 +1354,8 @@ document.addEventListener('DOMContentLoaded', function() {
         mobileLoginBtn.onclick = () => {
             closeMenuFunc();
             setTimeout(() => {
-                const loginBtn = document.getElementById('loginBtn');
-                if (loginBtn) loginBtn.click();
+                const mainLoginBtn = document.getElementById('loginBtn');
+                if (mainLoginBtn) mainLoginBtn.click();
             }, 200);
         };
     }
@@ -1343,8 +1364,8 @@ document.addEventListener('DOMContentLoaded', function() {
         mobileLogoutBtn.onclick = () => {
             closeMenuFunc();
             setTimeout(() => {
-                const logoutBtn = document.getElementById('logoutBtn');
-                if (logoutBtn) logoutBtn.click();
+                const mainLogoutBtn = document.getElementById('logoutBtn');
+                if (mainLogoutBtn) mainLogoutBtn.click();
             }, 200);
         };
     }
