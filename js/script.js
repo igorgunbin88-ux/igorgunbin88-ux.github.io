@@ -77,7 +77,7 @@ async function updateUIForUser() {
     if (currentUser) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
-        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''} | 💰 ${currentUser.casinoBalance || 5000}`;
+        userDisplay.textContent = `👋 ${currentUser.username}${currentUser.isAdmin ? ' (Admin)' : ''}`;
         userDisplay.style.display = 'inline';
         statsPanel.classList.remove('hidden');
         document.getElementById('userGamesPlayed').textContent = currentUser.gamesPlayed || 0;
@@ -91,7 +91,7 @@ async function updateUIForUser() {
         if (currentUser.isAdmin) {
             adminPanel.classList.remove('hidden');
             adminFooterBtn.style.display = 'inline-block';
-            if (typeof loadAdminUsersList === 'function') await loadAdminUsersList();
+            await loadAdminUsersList();
         } else {
             adminPanel.classList.add('hidden');
             adminFooterBtn.style.display = 'none';
@@ -103,6 +103,11 @@ async function updateUIForUser() {
         statsPanel.classList.add('hidden');
         adminPanel.classList.add('hidden');
         if (adminFooterBtn) adminFooterBtn.style.display = 'none';
+    }
+    
+    // Синхронизируем мобильное меню
+    if (typeof syncMobileAuth === 'function') {
+        syncMobileAuth();
     }
 }
 
